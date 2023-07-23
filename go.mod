@@ -17,7 +17,7 @@ require (
 	github.com/prometheus/client_golang v1.16.0
 	github.com/testcontainers/testcontainers-go v0.21.0
 	github.com/urfave/cli/v2 v2.25.7
-	go.uber.org/automaxprocs v1.5.2
+	go.uber.org/automaxprocs v1.5.3
 	go.uber.org/zap v1.24.0
 	goa.design/goa/v3 v3.12.1
 )
