@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"github.com/rotabot-io/rotabot/slack"
+
 	"go.uber.org/zap/zapcore"
 
 	"github.com/oklog/run"
@@ -29,6 +31,7 @@ type ServerParams struct {
 
 	Queries *db.Queries
 
+	SlackConfig  *slack.Config
 	SlackService genSlack.Service
 
 	HttpListener    net.Listener
@@ -70,14 +73,14 @@ func (s *Server) Run() error {
 	return s.group.Run()
 }
 
-func initHttpServer(params *ServerParams, rg *run.Group) *http.Server {
-	ctx, cancel := context.WithCancel(params.BaseContext)
-	logger := zapctx.Logger(ctx).With(zap.String("component", params.AppComponent))
+func initHttpServer(p *ServerParams, rg *run.Group) *http.Server {
+	ctx, cancel := context.WithCancel(p.BaseContext)
+	logger := zapctx.Logger(ctx).With(zap.String("component", p.AppComponent))
 	ctx = zapctx.WithLogger(ctx, logger)
 
-	mux := provideGoaMux(ctx, params.SlackService)
+	mux := provideGoaMux(ctx, p.SlackService)
 	srv := &http.Server{
-		Handler: wireUpMiddlewares(http.Handler(mux)),
+		Handler: wireUpMiddlewares(p, http.Handler(mux)),
 		BaseContext: func(listener net.Listener) context.Context {
 			return ctx
 		},
@@ -85,8 +88,8 @@ func initHttpServer(params *ServerParams, rg *run.Group) *http.Server {
 	}
 
 	rg.Add(func() error {
-		logger.Info("starting server", zap.Stringer("address", params.HttpListener.Addr()))
-		return srv.Serve(params.HttpListener)
+		logger.Info("starting server", zap.Stringer("address", p.HttpListener.Addr()))
+		return srv.Serve(p.HttpListener)
 	}, func(error) {
 		logger.Info("stopping server")
 		cancel()
@@ -99,7 +102,8 @@ func initHttpServer(params *ServerParams, rg *run.Group) *http.Server {
 	return srv
 }
 
-func wireUpMiddlewares(handler http.Handler) http.Handler {
+func wireUpMiddlewares(p *ServerParams, handler http.Handler) http.Handler {
+	handler = slack.RequestVerifier(handler, p.SlackConfig.SigningSecret)
 	handler = middleware.RecoveryHandler(handler)
 	handler = middleware.RequestAccessLogHandler(handler)
 	handler = middleware.LoggerInjectionHandler(handler)

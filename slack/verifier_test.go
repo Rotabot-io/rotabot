@@ -2,28 +2,28 @@ package slack
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"net/http"
 	"net/http/httptest"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Verifier", func() {
 	var ctx context.Context
-	var verifier RequestVerifierMiddleware
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		verifier = RequestVerifierMiddleware{}
 	})
 
 	It("Verifier ignores requests for other paths", func() {
 		req := httptest.NewRequest(http.MethodGet, "http://testing", nil)
 
-		handlerToTest := verifier.SlackSignatureVerifyHandler(
-			func(w http.ResponseWriter, r *http.Request) {
+		handlerToTest := RequestVerifier(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
-			},
+			}),
+			"SECRET",
 		)
 
 		res := httptest.NewRecorder()
@@ -35,10 +35,11 @@ var _ = Describe("Verifier", func() {
 	It("Verifier checks requests under slack path", func() {
 		req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/slack/commands", nil)
 
-		handlerToTest := verifier.SlackSignatureVerifyHandler(
-			func(w http.ResponseWriter, r *http.Request) {
+		handlerToTest := RequestVerifier(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
-			},
+			}),
+			"SECRET",
 		)
 
 		res := httptest.NewRecorder()
@@ -46,5 +47,4 @@ var _ = Describe("Verifier", func() {
 
 		Expect(res.Code).To(Equal(http.StatusUnauthorized))
 	})
-
 })

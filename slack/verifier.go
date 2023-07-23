@@ -12,18 +12,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type RequestVerifierMiddleware struct {
-	SigningSecret string
-}
-
-func (sv *RequestVerifierMiddleware) SlackSignatureVerifyHandler(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func RequestVerifier(next http.Handler, secret string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(path.Clean(r.URL.EscapedPath()), "/slack") {
 			// We don't want to verify requests that aren't from slack
 			next.ServeHTTP(w, r)
 		} else {
 			l := zapctx.Logger(r.Context())
-			verifier, err := slack.NewSecretsVerifier(r.Header, sv.SigningSecret)
+			verifier, err := slack.NewSecretsVerifier(r.Header, secret)
 			if err != nil {
 				l.Error("failed to create secrets verifier", zap.Error(err))
 				w.WriteHeader(http.StatusUnauthorized)
@@ -52,5 +48,5 @@ func (sv *RequestVerifierMiddleware) SlackSignatureVerifyHandler(next http.Handl
 
 			next.ServeHTTP(w, r)
 		}
-	}
+	})
 }
