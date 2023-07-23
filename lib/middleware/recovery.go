@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/getsentry/sentry-go"
 	"net/http"
 	"time"
+
+	"github.com/getsentry/sentry-go"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rotabot-io/rotabot/lib/metrics"
@@ -14,7 +15,6 @@ import (
 
 func RecoveryHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		defer func() {
 			if rawErr := recover(); rawErr != nil {
 				l := zapctx.Logger(r.Context())

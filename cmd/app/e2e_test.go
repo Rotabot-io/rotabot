@@ -53,6 +53,10 @@ var _ = Describe("E2E", func() {
 			AppComponent:     "backend",
 			MetricsComponent: "metrics",
 
+			SlackConfig: &slack.Config{
+				ClientSecret:  "TEST",
+				SigningSecret: "TEST",
+			},
 			SlackService: slack.New(
 				&slack.Config{
 					ClientSecret:  "TEST",

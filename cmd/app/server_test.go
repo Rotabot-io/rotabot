@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/rotabot-io/rotabot/slack"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
@@ -25,6 +27,7 @@ var _ = Describe("Server", func() {
 		req := httptest.NewRequest(http.MethodGet, "http://testing/foo", nil)
 
 		h := wireUpMiddlewares(
+			&ServerParams{SlackConfig: &slack.Config{SigningSecret: "TEST"}},
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				zapctx.Logger(r.Context()).Info("About to panic!")
 				panic("Test")

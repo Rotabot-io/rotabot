@@ -3,6 +3,8 @@ package main
 import (
 	"net"
 
+	"github.com/rotabot-io/rotabot/slack"
+
 	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
 	"github.com/urfave/cli/v2"
@@ -99,6 +101,11 @@ func commandAction() cli.ActionFunc {
 			BaseContext:      c.Context,
 			AppComponent:     "backend",
 			MetricsComponent: "metrics",
+
+			SlackConfig: &slack.Config{
+				ClientSecret:  c.String("slack.client_secret"),
+				SigningSecret: c.String("slack.signing_secret"),
+			},
 
 			SlackService: provideSlackService(c.Context, queries, c),
 
