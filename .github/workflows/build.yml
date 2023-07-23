@@ -60,8 +60,6 @@ jobs:
           token: ${{secrets.CODECOV_TOKEN}}
           file: ./cover.profile
           fail_ci_if_error: false
-          ignore:
-            - "gen"  # ignore gen folder as it's auto generated code
 
       - name: Test Summary
         uses: test-summary/action@v2
