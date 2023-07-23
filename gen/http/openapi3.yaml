@@ -1,0 +1,213 @@
+openapi: 3.0.3
+info:
+    title: Rotabot - Making rotas dead simple
+    description: A service for working with rotas across multiples tools i.e Slack, Teams, etc
+    version: "1.0"
+servers:
+    - url: http://localhost:8080/
+      description: Backend for the rotabot application.
+paths:
+    /slack/commands:
+        post:
+            tags:
+                - Slack
+            summary: Commands Slack
+            operationId: Slack#Commands
+            parameters:
+                - name: X-Slack-Signature
+                  in: header
+                  allowEmptyValue: true
+                  schema:
+                    type: string
+                    example: v0=somethingveryimportant
+                  example: v0=somethingveryimportant
+                - name: X-Slack-Request-Timestamp
+                  in: header
+                  allowEmptyValue: true
+                  schema:
+                    type: integer
+                    example: 1688832649
+                    format: int64
+                  example: 1688832649
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CommandsRequestBody'
+                        example:
+                            api_app_id: A123456
+                            channel_id: C2147483705
+                            channel_name: test
+                            command: /weather
+                            enterprise_id: E0001
+                            enterprise_name: Globular Construct Inc
+                            is_enterprise_install: true
+                            response_url: https://hooks.slack.com/commands/1234/5678
+                            team_domain: example
+                            team_id: T0001
+                            text: "94070"
+                            token: gIkuvaNzQIHg97ATvDxqgjtO
+                            trigger_id: 13345224609.738474920.8088930838d88f008e0
+                            user_id: U2147483697
+                            user_name: Steve
+            responses:
+                "200":
+                    description: OK response.
+    /slack/events:
+        post:
+            tags:
+                - Slack
+            summary: Events Slack
+            operationId: Slack#Events
+            parameters:
+                - name: X-Slack-Signature
+                  in: header
+                  allowEmptyValue: true
+                  schema:
+                    type: string
+                    example: v0=somethingveryimportant
+                  example: v0=somethingveryimportant
+                - name: X-Slack-Request-Timestamp
+                  in: header
+                  allowEmptyValue: true
+                  schema:
+                    type: integer
+                    example: 1688832649
+                    format: int64
+                  example: 1688832649
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/EventsRequestBody'
+                        example:
+                            api_app_id: A123456
+                            challenge: randomstring
+                            event:
+                                type: Architecto cumque optio eius.
+                            team_id: T0001
+                            token: gIkuvaNzQIHg97ATvDxqgjtO
+                            type: event_callback
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/EventResponse'
+                            example:
+                                challenge: randomstring
+components:
+    schemas:
+        CommandsRequestBody:
+            type: object
+            properties:
+                api_app_id:
+                    type: string
+                    example: A123456
+                channel_id:
+                    type: string
+                    example: C2147483705
+                channel_name:
+                    type: string
+                    example: test
+                command:
+                    type: string
+                    example: /weather
+                enterprise_id:
+                    type: string
+                    example: E0001
+                enterprise_name:
+                    type: string
+                    example: Globular Construct Inc
+                is_enterprise_install:
+                    type: boolean
+                    example: true
+                response_url:
+                    type: string
+                    example: https://hooks.slack.com/commands/1234/5678
+                team_domain:
+                    type: string
+                    example: example
+                team_id:
+                    type: string
+                    example: T0001
+                text:
+                    type: string
+                    example: "94070"
+                token:
+                    type: string
+                    example: gIkuvaNzQIHg97ATvDxqgjtO
+                trigger_id:
+                    type: string
+                    example: 13345224609.738474920.8088930838d88f008e0
+                user_id:
+                    type: string
+                    example: U2147483697
+                user_name:
+                    type: string
+                    example: Steve
+            example:
+                api_app_id: A123456
+                channel_id: C2147483705
+                channel_name: test
+                command: /weather
+                enterprise_id: E0001
+                enterprise_name: Globular Construct Inc
+                is_enterprise_install: true
+                response_url: https://hooks.slack.com/commands/1234/5678
+                team_domain: example
+                team_id: T0001
+                text: "94070"
+                token: gIkuvaNzQIHg97ATvDxqgjtO
+                trigger_id: 13345224609.738474920.8088930838d88f008e0
+                user_id: U2147483697
+                user_name: Steve
+        EventResponse:
+            type: object
+            properties:
+                challenge:
+                    type: string
+                    example: randomstring
+            example:
+                challenge: randomstring
+        EventsRequestBody:
+            type: object
+            properties:
+                api_app_id:
+                    type: string
+                    example: A123456
+                challenge:
+                    type: string
+                    example: randomstring
+                event:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                            example: Rerum numquam quae accusantium corporis repellendus.
+                    description: The actual event information
+                    example:
+                        type: Ipsa et.
+                team_id:
+                    type: string
+                    example: T0001
+                token:
+                    type: string
+                    example: gIkuvaNzQIHg97ATvDxqgjtO
+                type:
+                    type: string
+                    example: event_callback
+            example:
+                api_app_id: A123456
+                challenge: randomstring
+                event:
+                    type: Quisquam nam consequatur et pariatur.
+                team_id: T0001
+                token: gIkuvaNzQIHg97ATvDxqgjtO
+                type: event_callback
+tags:
+    - name: Slack
+      description: Slack api for interacting with slack commands, actions, events etc.
