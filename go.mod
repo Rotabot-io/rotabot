@@ -13,7 +13,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/oklog/run v1.1.0
 	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/onsi/gomega v1.27.9
+	github.com/onsi/gomega v1.27.10
 	github.com/prometheus/client_golang v1.16.0
 	github.com/slack-go/slack v0.12.2
 	github.com/testcontainers/testcontainers-go v0.21.0
