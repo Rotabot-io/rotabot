@@ -86,7 +86,7 @@ func provideQueries(ctx context.Context, dsn string) (*db.Queries, error) {
 	return db.New(conn), nil
 }
 
-func provideSlackService(ctx context.Context, q *db.Queries, c *cli.Context) genSlack.Service {
+func provideSlackService(_ context.Context, q *db.Queries, c *cli.Context) genSlack.Service {
 	return slack.New(
 		&slack.Config{
 			ClientSecret:  c.String("slack.client_secret"),

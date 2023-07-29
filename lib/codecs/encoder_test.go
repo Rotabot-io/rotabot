@@ -3,6 +3,7 @@ package codecs
 import (
 	"context"
 	"fmt"
+	stdhttp "net/http"
 	"net/http/httptest"
 	"strings"
 
@@ -36,7 +37,7 @@ var _ = Describe("Encoder", func() {
 
 	Describe("RequestEncoderWithLogs", func() {
 		It("should encode valid json without errors", func() {
-			req := httptest.NewRequest("GET", "/hello", strings.NewReader(`{"foo": "bar"}`))
+			req := httptest.NewRequest(stdhttp.MethodGet, "/hello", strings.NewReader(`{"foo": "bar"}`))
 			req = req.WithContext(ctx)
 			rd := RequestDecoderWithLogs(req)
 
@@ -52,7 +53,7 @@ var _ = Describe("Encoder", func() {
 		})
 
 		It("should fail to encode with an invalid json", func() {
-			req := httptest.NewRequest("GET", "/hello", strings.NewReader(`{"foo"`))
+			req := httptest.NewRequest(stdhttp.MethodGet, "/hello", strings.NewReader(`{"foo"`))
 			req = req.WithContext(ctx)
 			rd := RequestDecoderWithLogs(req)
 

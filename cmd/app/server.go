@@ -7,20 +7,19 @@ import (
 	"net"
 	"net/http"
 	"sync/atomic"
-
-	"github.com/rotabot-io/rotabot/slack"
-
-	"go.uber.org/zap/zapcore"
+	"time"
 
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zapio"
+
 	genSlack "github.com/rotabot-io/rotabot/gen/slack"
 	"github.com/rotabot-io/rotabot/lib/db"
-
 	"github.com/rotabot-io/rotabot/lib/middleware"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapio"
+	"github.com/rotabot-io/rotabot/slack"
 )
 
 type ServerParams struct {
@@ -84,7 +83,9 @@ func initHttpServer(p *ServerParams, rg *run.Group) *http.Server {
 		BaseContext: func(listener net.Listener) context.Context {
 			return ctx
 		},
-		ErrorLog: zapToStdLog(zapctx.Logger(ctx)),
+		ReadTimeout:       100 * time.Millisecond,
+		ReadHeaderTimeout: 100 * time.Millisecond,
+		ErrorLog:          zapToStdLog(zapctx.Logger(ctx)),
 	}
 
 	rg.Add(func() error {
@@ -123,7 +124,9 @@ func initMetricsServer(params *ServerParams, rg *run.Group) *http.Server {
 		BaseContext: func(listener net.Listener) context.Context {
 			return ctx
 		},
-		ErrorLog: zapToStdLog(zapctx.Logger(ctx)),
+		ReadTimeout:       100 * time.Millisecond,
+		ReadHeaderTimeout: 100 * time.Millisecond,
+		ErrorLog:          zapToStdLog(zapctx.Logger(ctx)),
 	}
 
 	rg.Add(func() error {

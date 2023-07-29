@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/docker/go-connections/nat"
@@ -35,7 +36,7 @@ func RunContainer(ctx context.Context) (*PostgresContainer, error) {
 		ExposedPorts: []string{"5432/tcp"},
 		Cmd:          []string{"postgres", "-c", "fsync=off"},
 		WaitingFor: wait.ForSQL("5432/tcp", "postgres", func(host string, port nat.Port) string {
-			connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s", "rotabot", "password", host, port.Port(), "rotabot", "sslmode=disable")
+			connStr = fmt.Sprintf("postgres://%s:%s@%s/%s?%s", "rotabot", "password", net.JoinHostPort(host, port.Port()), "rotabot", "sslmode=disable")
 			return connStr
 		}).WithStartupTimeout(time.Second * 5),
 	}
