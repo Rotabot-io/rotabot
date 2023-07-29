@@ -28,7 +28,7 @@ var _ = Describe("Decoder", func() {
 	})
 
 	It("should decode valid json without errors", func() {
-		req := httptest.NewRequest("GET", "/hello", strings.NewReader(`{"foo": "bar"}`))
+		req := httptest.NewRequest(http.MethodGet, "/hello", strings.NewReader(`{"foo": "bar"}`))
 		req = req.WithContext(ctx)
 		rd := RequestDecoderWithLogs(req)
 
@@ -62,7 +62,7 @@ var _ = Describe("Decoder", func() {
 	})
 
 	It("should fail to decode invalid json", func() {
-		req := httptest.NewRequest("GET", "/hello", strings.NewReader(`{"foo"`))
+		req := httptest.NewRequest(http.MethodGet, "/hello", strings.NewReader(`{"foo"`))
 		req = req.WithContext(ctx)
 		rd := RequestDecoderWithLogs(req)
 

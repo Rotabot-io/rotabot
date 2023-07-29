@@ -1,0 +1,39 @@
+linters:
+  # We do this to own which linters we want to enable.
+  # We are currently using all the default ones but this might change in the future.
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - asciicheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - gosec
+    - exhaustive
+    - goimports
+    - gofumpt
+    - makezero
+    - nakedret
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - rowserrcheck
+    - sqlclosecheck
+    - tenv
+    - tparallel
+    - unparam
+    - usestdlibvars
+    - wastedassign
+
+
+linters-settings:
+  errorlint:
+    errorf: true
+  makezero:
+    always: true

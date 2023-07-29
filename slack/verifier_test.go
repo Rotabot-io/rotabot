@@ -22,7 +22,7 @@ var _ = Describe("Verifier", func() {
 
 		handlerToTest := RequestVerifier(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(200)
+				w.WriteHeader(http.StatusOK)
 			}),
 			"SECRET",
 		)
@@ -38,7 +38,7 @@ var _ = Describe("Verifier", func() {
 
 		handlerToTest := RequestVerifier(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(200)
+				w.WriteHeader(http.StatusOK)
 			}),
 			"SECRET",
 		)
@@ -50,7 +50,7 @@ var _ = Describe("Verifier", func() {
 	})
 
 	It("Verifier reads headers and body", func() {
-		validSigningSecret := "e6b19c573432dcc6b075501d51b51bb8"
+		validSigningSecret := "e6b19c573432dcc6b075501d51b51bb8" // #nosec G101
 		validBody := `{"token":"aF5ynEYQH0dFN9imlgcADxDB","team_id":"XXXXXXXXX","api_app_id":"YYYYYYYYY","event":{"type":"app_mention","user":"AAAAAAAAA","text":"<@EEEEEEEEE> hello world","client_msg_id":"477cc591-ch73-a14z-4db8-g0cd76321bec","ts":"1531431954.000073","channel":"TTTTTTTTT","event_ts":"1531431954.000073"},"type":"event_callback","event_id":"TvBP7LRED7","event_time":1531431954,"authed_users":["EEEEEEEEE"]}`
 
 		req := httptest.NewRequest(http.MethodPost, "http://localhost:8080/slack/commands", strings.NewReader(validBody))
@@ -59,7 +59,7 @@ var _ = Describe("Verifier", func() {
 
 		handlerToTest := RequestVerifier(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(200)
+				w.WriteHeader(http.StatusOK)
 			}),
 			validSigningSecret,
 		)
