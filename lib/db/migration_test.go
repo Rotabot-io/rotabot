@@ -34,7 +34,7 @@ var _ = Describe("Migration", func() {
 	})
 
 	It("Queries should fail if table is not ready", func() {
-		rotas, err := q.ListRotas(ctx)
+		rotas, err := q.ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: "foo", TeamID: "bar"})
 
 		Expect(err.Error()).To(Equal("ERROR: relation \"rotas\" does not exist (SQLSTATE 42P01)"))
 		Expect(len(rotas)).To(Equal(0))
@@ -44,7 +44,7 @@ var _ = Describe("Migration", func() {
 		err := Migrate(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		rotas, err := q.ListRotas(ctx)
+		rotas, err := q.ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: "foo", TeamID: "bar"})
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(rotas)).To(Equal(0))

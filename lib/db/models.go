@@ -8,45 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Member struct {
-	ID        string           `json:"id"`
-	RotaID    string           `json:"rota_id"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
-type Organization struct {
-	ID        string           `json:"id"`
-	Name      string           `json:"name"`
-	TeamID    string           `json:"team_id"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
 type Rota struct {
-	ID             string           `json:"id"`
-	OrganizationID string           `json:"organization_id"`
-	ChannelID      string           `json:"channel_id"`
-	Name           string           `json:"name"`
-	Type           string           `json:"type"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
-}
-
-type Shift struct {
 	ID        string           `json:"id"`
-	RotaID    string           `json:"rota_id"`
-	MemberID  string           `json:"member_id"`
-	StartAt   pgtype.Timestamp `json:"start_at"`
-	EndAt     pgtype.Timestamp `json:"end_at"`
+	TeamID    string           `json:"team_id"`
+	ChannelID string           `json:"channel_id"`
+	Name      string           `json:"name"`
+	Metadata  RotaMetadata     `json:"metadata"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
-type User struct {
-	ID             string           `json:"id"`
-	OrganizationID string           `json:"organization_id"`
-	UserID         string           `json:"user_id"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
 }

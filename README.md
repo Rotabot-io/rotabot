@@ -7,7 +7,9 @@
   <b><a target="_blank" href="https://rotabot.io" >Learn more »</a></b>
 </div>
 <br/>
+
 ## Development
+
 Rotabot uses [testcontainers](https://testcontainers.com/) to ensure that the tests have everything they need to run. Make sure you have docker running locally.
 
 In order to run the tests you need to do the following:

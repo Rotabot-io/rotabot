@@ -9,17 +9,19 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/rotabot-io/rotabot/slack"
+
+	"go.uber.org/zap/zapcore"
+
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zapio"
 
 	genSlack "github.com/rotabot-io/rotabot/gen/slack"
 	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/rotabot-io/rotabot/lib/middleware"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
-	"github.com/rotabot-io/rotabot/slack"
 )
 
 type ServerParams struct {
@@ -30,8 +32,8 @@ type ServerParams struct {
 
 	Queries *db.Queries
 
-	SlackConfig  *slack.Config
-	SlackService genSlack.Service
+	SlackSigningSecret string
+	SlackService       genSlack.Service
 
 	HttpListener    net.Listener
 	MetricsListener net.Listener
@@ -83,9 +85,9 @@ func initHttpServer(p *ServerParams, rg *run.Group) *http.Server {
 		BaseContext: func(listener net.Listener) context.Context {
 			return ctx
 		},
+		ErrorLog:          zapToStdLog(zapctx.Logger(ctx)),
 		ReadTimeout:       100 * time.Millisecond,
 		ReadHeaderTimeout: 100 * time.Millisecond,
-		ErrorLog:          zapToStdLog(zapctx.Logger(ctx)),
 	}
 
 	rg.Add(func() error {
@@ -104,7 +106,7 @@ func initHttpServer(p *ServerParams, rg *run.Group) *http.Server {
 }
 
 func wireUpMiddlewares(p *ServerParams, handler http.Handler) http.Handler {
-	handler = slack.RequestVerifier(handler, p.SlackConfig.SigningSecret)
+	handler = slack.RequestVerifier(handler, p.SlackSigningSecret)
 	handler = middleware.RecoveryHandler(handler)
 	handler = middleware.RequestAccessLogHandler(handler)
 	handler = middleware.LoggerInjectionHandler(handler)
@@ -124,9 +126,9 @@ func initMetricsServer(params *ServerParams, rg *run.Group) *http.Server {
 		BaseContext: func(listener net.Listener) context.Context {
 			return ctx
 		},
+		ErrorLog:          zapToStdLog(zapctx.Logger(ctx)),
 		ReadTimeout:       100 * time.Millisecond,
 		ReadHeaderTimeout: 100 * time.Millisecond,
-		ErrorLog:          zapToStdLog(zapctx.Logger(ctx)),
 	}
 
 	rg.Add(func() error {
