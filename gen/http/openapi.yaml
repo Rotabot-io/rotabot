@@ -19,11 +19,11 @@ paths:
             parameters:
                 - name: X-Slack-Signature
                   in: header
-                  required: false
+                  required: true
                   type: string
                 - name: X-Slack-Request-Timestamp
                   in: header
-                  required: false
+                  required: true
                   type: integer
                   format: int64
                 - name: CommandsRequestBody
@@ -31,6 +31,13 @@ paths:
                   required: true
                   schema:
                     $ref: '#/definitions/SlackCommandsRequestBody'
+                    required:
+                        - token
+                        - command
+                        - trigger_id
+                        - user_id
+                        - team_id
+                        - channel_id
             responses:
                 "200":
                     description: OK response.
@@ -45,11 +52,11 @@ paths:
             parameters:
                 - name: X-Slack-Signature
                   in: header
-                  required: false
+                  required: true
                   type: string
                 - name: X-Slack-Request-Timestamp
                   in: header
-                  required: false
+                  required: true
                   type: integer
                   format: int64
                 - name: EventsRequestBody
@@ -57,11 +64,46 @@ paths:
                   required: true
                   schema:
                     $ref: '#/definitions/SlackEventsRequestBody'
+                    required:
+                        - token
+                        - team_id
+                        - type
+                        - api_app_id
             responses:
                 "200":
                     description: OK response.
                     schema:
                         $ref: '#/definitions/SlackEventsResponseBody'
+            schemes:
+                - http
+    /slack/message_actions:
+        post:
+            tags:
+                - Slack
+            summary: MessageActions Slack
+            operationId: Slack#MessageActions
+            parameters:
+                - name: X-Slack-Signature
+                  in: header
+                  required: true
+                  type: string
+                - name: X-Slack-Request-Timestamp
+                  in: header
+                  required: true
+                  type: integer
+                  format: int64
+                - name: MessageActionsRequestBody
+                  in: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/SlackMessageActionsRequestBody'
+                    required:
+                        - payload
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/SlackMessageActionsResponseBody'
             schemes:
                 - http
 definitions:
@@ -71,101 +113,113 @@ definitions:
         properties:
             api_app_id:
                 type: string
-                example: A123456
+                example: Repudiandae placeat hic dignissimos debitis nisi quidem.
             channel_id:
                 type: string
-                example: C2147483705
+                example: Quas aperiam nihil.
             channel_name:
                 type: string
-                example: test
+                example: Molestias at quasi.
             command:
                 type: string
-                example: /weather
+                example: Expedita fuga sed rerum eum.
             enterprise_id:
                 type: string
-                example: E0001
+                example: Sapiente iure ducimus eveniet aliquam.
             enterprise_name:
                 type: string
-                example: Globular Construct Inc
+                example: Magnam voluptatem molestiae rerum.
             is_enterprise_install:
                 type: boolean
-                example: true
+                example: false
             response_url:
                 type: string
-                example: https://hooks.slack.com/commands/1234/5678
+                example: Aspernatur voluptas.
             team_domain:
                 type: string
-                example: example
+                example: Exercitationem nihil voluptates facere eum rerum.
             team_id:
                 type: string
-                example: T0001
+                example: Eius quos qui debitis modi quo voluptates.
             text:
                 type: string
-                example: "94070"
+                example: Exercitationem officia eum.
             token:
                 type: string
-                example: gIkuvaNzQIHg97ATvDxqgjtO
+                example: Dolor natus aut non.
             trigger_id:
                 type: string
-                example: 13345224609.738474920.8088930838d88f008e0
+                example: Numquam in rerum id eos.
             user_id:
                 type: string
-                example: U2147483697
+                example: Aliquid neque quia.
             user_name:
                 type: string
-                example: Steve
+                example: Eum voluptatem rem iusto.
         example:
-            api_app_id: A123456
-            channel_id: C2147483705
-            channel_name: test
-            command: /weather
-            enterprise_id: E0001
-            enterprise_name: Globular Construct Inc
+            api_app_id: Debitis culpa in iste quidem.
+            channel_id: Velit ipsam.
+            channel_name: Eius asperiores dolores nobis.
+            command: Qui dolorem sint est iure quia.
+            enterprise_id: In et alias velit magni.
+            enterprise_name: Nobis et cupiditate nostrum ipsum.
             is_enterprise_install: true
-            response_url: https://hooks.slack.com/commands/1234/5678
-            team_domain: example
-            team_id: T0001
-            text: "94070"
-            token: gIkuvaNzQIHg97ATvDxqgjtO
-            trigger_id: 13345224609.738474920.8088930838d88f008e0
-            user_id: U2147483697
-            user_name: Steve
+            response_url: Recusandae qui explicabo aspernatur quas et et.
+            team_domain: Quis minima sint doloribus earum odit.
+            team_id: Iste voluptatem vel magnam laborum.
+            text: Ut at voluptate odit minus provident.
+            token: Veniam ducimus delectus qui distinctio rem.
+            trigger_id: Et earum voluptatem quas voluptas sapiente.
+            user_id: Dolor officia minima est autem error.
+            user_name: Necessitatibus consectetur est.
+        required:
+            - token
+            - command
+            - trigger_id
+            - user_id
+            - team_id
+            - channel_id
     SlackEventsRequestBody:
         title: SlackEventsRequestBody
         type: object
         properties:
             api_app_id:
                 type: string
-                example: A123456
+                example: Nesciunt vitae.
             challenge:
                 type: string
-                example: randomstring
+                example: Quod molestias aut perferendis deleniti.
             event:
                 type: object
                 properties:
                     type:
                         type: string
-                        example: Minus officiis fugiat deleniti nihil.
+                        example: Cum distinctio.
                 description: The actual event information
                 example:
-                    type: Eos numquam assumenda.
+                    type: Nesciunt corporis vel ipsam vero.
             team_id:
                 type: string
-                example: T0001
+                example: Assumenda eos.
             token:
                 type: string
-                example: gIkuvaNzQIHg97ATvDxqgjtO
+                example: Sed laborum quia facere.
             type:
                 type: string
-                example: event_callback
+                example: Eos suscipit harum laborum dolorem deserunt et.
         example:
-            api_app_id: A123456
-            challenge: randomstring
+            api_app_id: Nam similique vero sequi ut voluptas laborum.
+            challenge: Optio corporis sunt ratione et.
             event:
-                type: Eius sunt rerum illo nihil.
-            team_id: T0001
-            token: gIkuvaNzQIHg97ATvDxqgjtO
-            type: event_callback
+                type: Est voluptas qui dolor libero voluptate voluptate.
+            team_id: Est eaque inventore nam quaerat omnis et.
+            token: Adipisci sequi.
+            type: Eos cupiditate fuga quo officiis unde quisquam.
+        required:
+            - token
+            - team_id
+            - type
+            - api_app_id
     SlackEventsResponseBody:
         title: SlackEventsResponseBody
         type: object
@@ -175,3 +229,97 @@ definitions:
                 example: randomstring
         example:
             challenge: randomstring
+    SlackMessageActionsRequestBody:
+        title: SlackMessageActionsRequestBody
+        type: object
+        properties:
+            payload:
+                type: string
+                example:
+                    - 65
+                    - 110
+                    - 105
+                    - 109
+                    - 105
+                    - 32
+                    - 99
+                    - 111
+                    - 110
+                    - 115
+                    - 101
+                    - 113
+                    - 117
+                    - 97
+                    - 116
+                    - 117
+                    - 114
+                    - 32
+                    - 105
+                    - 115
+                    - 116
+                    - 101
+                    - 46
+                format: byte
+        example:
+            payload:
+                - 77
+                - 105
+                - 110
+                - 105
+                - 109
+                - 97
+                - 32
+                - 112
+                - 111
+                - 115
+                - 115
+                - 105
+                - 109
+                - 117
+                - 115
+                - 32
+                - 114
+                - 101
+                - 114
+                - 117
+                - 109
+                - 32
+                - 101
+                - 115
+                - 116
+                - 32
+                - 113
+                - 117
+                - 105
+                - 32
+                - 105
+                - 112
+                - 115
+                - 117
+                - 109
+                - 46
+        required:
+            - payload
+    SlackMessageActionsResponseBody:
+        title: SlackMessageActionsResponseBody
+        type: object
+        properties:
+            errors:
+                type: object
+                example:
+                    foo: bar
+                additionalProperties:
+                    type: string
+                    example: Saepe non praesentium ea voluptas maxime natus.
+            response_action:
+                type: string
+                example: errors
+            view:
+                type: string
+                example: Debitis porro et perferendis itaque architecto.
+                format: binary
+        example:
+            errors:
+                foo: bar
+            response_action: errors
+            view: Cumque aliquid omnis.

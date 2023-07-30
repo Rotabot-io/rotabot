@@ -18,8 +18,10 @@ type decoder struct {
 
 func RequestDecoderWithLogs(r *stdhttp.Request) http.Decoder {
 	if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+		d := form.NewDecoder(r.Body)
+		d.IgnoreUnknownKeys(false)
 		return &decoder{
-			decoder: form.NewDecoder(r.Body),
+			decoder: d,
 			logger:  zapctx.Logger(r.Context()),
 			kind:    "request",
 		}

@@ -66,6 +66,10 @@ func New(p *Params) *cli.App {
 				// default encoding in the config is json
 			}
 
+			if ctx.Bool("verbose") {
+				cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+			}
+
 			zl, err := cfg.Build()
 			if err != nil {
 				return err

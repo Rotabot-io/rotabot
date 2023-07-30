@@ -1,4 +1,4 @@
-package errors
+package goaerrors
 
 import (
 	goa "goa.design/goa/v3/pkg"

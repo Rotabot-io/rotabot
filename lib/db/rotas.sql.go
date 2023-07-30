@@ -9,12 +9,20 @@ import (
 	"context"
 )
 
-const listRotas = `-- name: ListRotas :many
-SELECT id, organization_id, channel_id, name, type, created_at, updated_at from ROTAS
+const listRotasByChannel = `-- name: ListRotasByChannel :many
+SELECT rotas.id, rotas.team_id, rotas.channel_id, rotas.name, rotas.metadata, rotas.created_at, rotas.updated_at
+from ROTAS
+WHERE ROTAS.CHANNEL_ID = $1
+  AND ROTAS.TEAM_ID = $2
 `
 
-func (q *Queries) ListRotas(ctx context.Context) ([]Rota, error) {
-	rows, err := q.db.Query(ctx, listRotas)
+type ListRotasByChannelParams struct {
+	ChannelID string `json:"channel_id"`
+	TeamID    string `json:"team_id"`
+}
+
+func (q *Queries) ListRotasByChannel(ctx context.Context, arg ListRotasByChannelParams) ([]Rota, error) {
+	rows, err := q.db.Query(ctx, listRotasByChannel, arg.ChannelID, arg.TeamID)
 	if err != nil {
 		return nil, err
 	}
@@ -24,10 +32,10 @@ func (q *Queries) ListRotas(ctx context.Context) ([]Rota, error) {
 		var i Rota
 		if err := rows.Scan(
 			&i.ID,
-			&i.OrganizationID,
+			&i.TeamID,
 			&i.ChannelID,
 			&i.Name,
-			&i.Type,
+			&i.Metadata,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -39,4 +47,29 @@ func (q *Queries) ListRotas(ctx context.Context) ([]Rota, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const saveRota = `-- name: SaveRota :one
+INSERT INTO ROTAS (TEAM_ID, CHANNEL_ID, NAME, METADATA)
+VALUES ($1, $2, $3, $4)
+RETURNING ID
+`
+
+type SaveRotaParams struct {
+	TeamID    string       `json:"team_id"`
+	ChannelID string       `json:"channel_id"`
+	Name      string       `json:"name"`
+	Metadata  RotaMetadata `json:"metadata"`
+}
+
+func (q *Queries) SaveRota(ctx context.Context, arg SaveRotaParams) (string, error) {
+	row := q.db.QueryRow(ctx, saveRota,
+		arg.TeamID,
+		arg.ChannelID,
+		arg.Name,
+		arg.Metadata,
+	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }

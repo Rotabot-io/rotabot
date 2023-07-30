@@ -2,21 +2,21 @@ package slack
 
 import (
 	"github.com/rotabot-io/rotabot/gen/http/slack/server"
-	gen "github.com/rotabot-io/rotabot/gen/slack"
+	"github.com/rotabot-io/rotabot/gen/slack"
 	"github.com/rotabot-io/rotabot/lib/codecs"
-	"github.com/rotabot-io/rotabot/lib/errors"
+	"github.com/rotabot-io/rotabot/lib/goaerrors"
 	goahttp "goa.design/goa/v3/http"
 )
 
-func NewServer(mux goahttp.Muxer, service gen.Service) *server.Server {
-	endpoints := gen.NewEndpoints(service)
+func NewServer(mux goahttp.Muxer, service slack.Service) *server.Server {
+	endpoints := slack.NewEndpoints(service)
 
 	return server.New(
 		endpoints,
 		mux,
 		codecs.RequestDecoderWithLogs,
 		codecs.ResponseEncoderWithLogs,
-		errors.ErrorHandler(),
+		goaerrors.ErrorHandler(),
 		nil,
 	)
 }

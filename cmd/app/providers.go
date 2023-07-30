@@ -6,19 +6,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/getsentry/sentry-go"
-	"github.com/jackc/pgx/v5"
 	"github.com/rotabot-io/rotabot/internal"
 	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/urfave/cli/v2"
 
+	"github.com/prometheus/client_golang/prometheus"
 	httpSlack "github.com/rotabot-io/rotabot/gen/http/slack/server"
 	genSlack "github.com/rotabot-io/rotabot/gen/slack"
-	"github.com/rotabot-io/rotabot/slack"
-
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rotabot-io/rotabot/lib/metrics"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
+	"github.com/rotabot-io/rotabot/slack"
 	"go.uber.org/zap"
 	goahttp "goa.design/goa/v3/http"
 )
@@ -66,7 +66,6 @@ func provideConnString(c *cli.Context) (string, error) {
 			return "", err
 		}
 		return container.ConnectionString(), nil
-
 	}
 	if dsn := c.String("database.url"); dsn != "" {
 		return dsn, nil
@@ -76,24 +75,16 @@ func provideConnString(c *cli.Context) (string, error) {
 
 func provideQueries(ctx context.Context, dsn string) (*db.Queries, error) {
 	logger := zapctx.Logger(ctx)
-	conn, err := pgx.Connect(ctx, dsn)
+	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		logger.Error("unable to connect to database", zap.Error(err))
 		return nil, err
 	}
-	defer conn.Close(ctx)
-
-	return db.New(conn), nil
+	return db.New(pool), nil
 }
 
-func provideSlackService(_ context.Context, q *db.Queries, c *cli.Context) genSlack.Service {
-	return slack.New(
-		&slack.Config{
-			ClientSecret:  c.String("slack.client_secret"),
-			SigningSecret: c.String("slack.signing_secret"),
-		},
-		q,
-	)
+func provideSlackService(_ context.Context, q *db.Queries) genSlack.Service {
+	return slack.New(q)
 }
 
 func provideSentry(ctx context.Context, c *cli.Context) error {
