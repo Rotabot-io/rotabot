@@ -2,7 +2,6 @@ package views
 
 import (
 	"context"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 	. "github.com/onsi/ginkgo/v2"
@@ -131,8 +130,7 @@ var _ = Describe("Home", func() {
 
 			sectionBlock = props.blocks.BlockSet[2].(*slack.SectionBlock)
 			Expect(sectionBlock.Text.Text).To(Equal("Test Rota"))
-			Expect(strings.Contains(sectionBlock.BlockID, "ROTA_ELEMENT")).To(BeTrue())
-			Expect(strings.Contains(sectionBlock.BlockID, id)).To(BeTrue())
+			Expect(sectionBlock.BlockID).To(Equal(id))
 		})
 	})
 
@@ -155,7 +153,7 @@ var _ = Describe("Home", func() {
 		})
 
 		It("returns an error when actions is unknown", func() {
-			home.State.Action = "unknown"
+			home.State.action = "unknown"
 
 			_, err := home.OnAction(ctx)
 			Expect(err).To(HaveOccurred())
@@ -163,11 +161,11 @@ var _ = Describe("Home", func() {
 		})
 
 		It("calls slack api to push add_rota modal", func() {
-			home.State.Action = HomeActionAddRota
+			home.State.action = HASaveRota
 
-			addRota := &AddRota{
+			addRota := &SaveRota{
 				Queries: queries,
-				State: &AddRotaState{
+				State: &SaveRotaState{
 					TriggerID:      triggerID,
 					ChannelID:      channelID,
 					TeamID:         teamID,
@@ -177,7 +175,7 @@ var _ = Describe("Home", func() {
 			}
 			p, err := addRota.BuildProps(ctx)
 			Expect(err).ToNot(HaveOccurred())
-			props := p.(*AddRotaProps)
+			props := p.(*SaveRotaProps)
 
 			expectedModal := slack.ModalViewRequest{
 				Type:            slack.VTModal,
@@ -185,10 +183,10 @@ var _ = Describe("Home", func() {
 				Blocks:          props.blocks,
 				Close:           props.close,
 				Submit:          props.submit,
-				CallbackID:      string(VTAddRota),
+				CallbackID:      string(VTSaveRota),
 				NotifyOnClose:   true,
 				ClearOnClose:    true,
-				PrivateMetadata: channelID,
+				PrivateMetadata: "{\"rota_id\":\"\",\"channel_id\":\"CH123\"}",
 			}
 			sc.EXPECT().PushViewContext(ctx, triggerID, expectedModal).Return(nil, nil).Times(1)
 
@@ -236,7 +234,7 @@ var _ = Describe("Home", func() {
 				CallbackID:      string(VTHome),
 				NotifyOnClose:   true,
 				ClearOnClose:    true,
-				PrivateMetadata: home.State.ChannelID,
+				PrivateMetadata: "{\"rota_id\":\"\",\"channel_id\":\"C123\"}",
 			}
 			sc.EXPECT().
 				OpenViewContext(ctx, home.State.TriggerID, expectedView).

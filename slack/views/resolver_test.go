@@ -25,7 +25,7 @@ var _ = Describe("Resolver", func() {
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						CallbackID:      string(VTHome),
-						PrivateMetadata: "C123",
+						PrivateMetadata: "{\"rota_id\":\"\",\"channel_id\":\"C123\"}",
 					},
 					TriggerID: "T123",
 					Team: slack.Team{
@@ -43,20 +43,21 @@ var _ = Describe("Resolver", func() {
 			Expect(homeView.State.TriggerID).To(Equal("T123"))
 			Expect(homeView.State.ChannelID).To(Equal("C123"))
 			Expect(homeView.State.TeamID).To(Equal("TE123"))
-			Expect(homeView.State.Action).To(BeEmpty())
+			Expect(homeView.State.action).To(BeEmpty())
 		})
 
-		It("resolves a home view with a known action", func() {
+		It("resolves save view action without rota_id to trigger a create", func() {
 			params := ResolverParams{
 				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
-						CallbackID: string(VTHome),
+						PrivateMetadata: "{\"rota_id\":\"ROTA_ID\",\"channel_id\":\"C123\"}",
+						CallbackID:      string(VTHome),
 					},
 					ActionCallback: slack.ActionCallbacks{
 						BlockActions: []*slack.BlockAction{
 							{
-								ActionID: string(HomeActionAddRota),
+								ActionID: string(HASaveRota),
 							},
 						},
 					},
@@ -69,17 +70,50 @@ var _ = Describe("Resolver", func() {
 			homeView, ok := view.(*Home)
 			Expect(ok).To(BeTrue())
 
-			Expect(homeView.State.Action).To(Equal(HomeActionAddRota))
+			Expect(homeView.State.action).To(Equal(HASaveRota))
+			Expect(homeView.State.rotaID).To(BeEmpty())
+		})
+
+		It("resolves save view action with the rota_id to trigger an update", func() {
+			params := ResolverParams{
+				Queries: queries,
+				Action: slack.InteractionCallback{
+					View: slack.View{
+						PrivateMetadata: "{\"rota_id\":\"ROTA_ID\",\"channel_id\":\"C123\"}",
+						CallbackID:      string(VTHome),
+					},
+					ActionCallback: slack.ActionCallbacks{
+						BlockActions: []*slack.BlockAction{
+							{
+								ActionID: string(HSRota),
+								BlockID:  "ROTA_ID",
+								SelectedOption: slack.OptionBlockObject{
+									Value: string(HASaveRota),
+								},
+							},
+						},
+					},
+				},
+			}
+
+			view, err := Resolve(ctx, params)
+			Expect(err).ToNot(HaveOccurred())
+
+			homeView, ok := view.(*Home)
+			Expect(ok).To(BeTrue())
+
+			Expect(homeView.State.action).To(Equal(HASaveRota))
+			Expect(homeView.State.rotaID).To(Equal("ROTA_ID"))
 		})
 	})
-	Describe("AddRota", func() {
+	Describe("SaveRota", func() {
 		It("resolves a add rota view with default state", func() {
 			params := ResolverParams{
 				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
-						CallbackID:      string(VTAddRota),
-						PrivateMetadata: "C123",
+						CallbackID:      string(VTSaveRota),
+						PrivateMetadata: "{\"rota_id\":\"\",\"channel_id\":\"C123\"}",
 						PreviousViewID:  "PREV123",
 						ExternalID:      "EXT123",
 						State:           &slack.ViewState{},
@@ -94,7 +128,7 @@ var _ = Describe("Resolver", func() {
 			view, err := Resolve(ctx, params)
 			Expect(err).ToNot(HaveOccurred())
 
-			addView, ok := view.(*AddRota)
+			addView, ok := view.(*SaveRota)
 			Expect(ok).To(BeTrue())
 
 			Expect(addView.State.TriggerID).To(Equal("T123"))
@@ -104,6 +138,7 @@ var _ = Describe("Resolver", func() {
 			Expect(addView.State.externalID).To(Equal("EXT123"))
 
 			Expect(addView.State.rotaName).To(BeEmpty())
+			Expect(addView.State.rotaID).To(BeEmpty())
 			Expect(addView.State.frequency).To(Equal(db.RFWeekly))
 			Expect(addView.State.schedulingType).To(Equal(db.RSCreated))
 		})
@@ -113,7 +148,8 @@ var _ = Describe("Resolver", func() {
 				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
-						CallbackID: string(VTAddRota),
+						CallbackID:      string(VTSaveRota),
+						PrivateMetadata: "{\"rota_id\":\"ROTA_ID\",\"channel_id\":\"C123\"}",
 						State: &slack.ViewState{
 							Values: map[string]map[string]slack.BlockAction{
 								"ROTA_NAME": {
@@ -144,8 +180,9 @@ var _ = Describe("Resolver", func() {
 			view, err := Resolve(ctx, params)
 			Expect(err).ToNot(HaveOccurred())
 
-			addView, ok := view.(*AddRota)
+			addView, ok := view.(*SaveRota)
 			Expect(ok).To(BeTrue())
+			Expect(addView.State.rotaID).To(Equal("ROTA_ID"))
 
 			Expect(addView.State.rotaName).To(Equal("Test Rota"))
 			Expect(addView.State.frequency).To(Equal(db.RFMonthly))

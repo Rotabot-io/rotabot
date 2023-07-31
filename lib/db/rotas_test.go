@@ -37,6 +37,36 @@ var _ = Describe("Rotas", func() {
 		})
 	})
 
+	Describe("FindRotaByID", func() {
+		When("rota does not exist", func() {
+			It("should return ErrNotFound", func() {
+				_, err := q.FindRotaByID(ctx, "not_found")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+		When("rota exists", func() {
+			It("should return rota", func() {
+				id, err := q.SaveRota(ctx, SaveRotaParams{
+					ChannelID: "C123",
+					TeamID:    "T123",
+					Name:      "test",
+					Metadata: RotaMetadata{
+						Frequency:      RFDaily,
+						SchedulingType: RSRandom,
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				rota, err := q.FindRotaByID(ctx, id)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rota.ID).To(Equal(id))
+				Expect(rota.Name).To(Equal("test"))
+				Expect(rota.Metadata.Frequency).To(Equal(RFDaily))
+				Expect(rota.Metadata.SchedulingType).To(Equal(RSRandom))
+			})
+		})
+	})
+
 	Describe("ListRotasByChannel", func() {
 		var (
 			channelID string
@@ -138,6 +168,60 @@ var _ = Describe("Rotas", func() {
 			rotas, err := q.ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: channelID, TeamID: teamID})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rotas).To(HaveLen(1))
+		})
+	})
+
+	Describe("UpdateRota", func() {
+		When("rota does not exist", func() {
+			It("should return ErrNotFound", func() {
+				id, err := q.UpdateRota(
+					ctx,
+					UpdateRotaParams{
+						ID:   "not_found",
+						Name: "test",
+						Metadata: RotaMetadata{
+							Frequency:      RFDaily,
+							SchedulingType: RSRandom,
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+				Expect(id).To(BeEmpty())
+			})
+		})
+		When("rota exists", func() {
+			It("should return rota", func() {
+				id, err := q.SaveRota(ctx, SaveRotaParams{
+					ChannelID: "C123",
+					TeamID:    "T123",
+					Name:      "test",
+					Metadata: RotaMetadata{
+						Frequency:      RFDaily,
+						SchedulingType: RSRandom,
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				id, err = q.UpdateRota(
+					ctx,
+					UpdateRotaParams{
+						ID:   id,
+						Name: "test test",
+						Metadata: RotaMetadata{
+							Frequency:      RFWeekly,
+							SchedulingType: RSCreated,
+						},
+					},
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				rota, err := q.FindRotaByID(ctx, id)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rota.ID).To(Equal(id))
+				Expect(rota.Name).To(Equal("test test"))
+				Expect(rota.Metadata.Frequency).To(Equal(RFWeekly))
+				Expect(rota.Metadata.SchedulingType).To(Equal(RSCreated))
+			})
 		})
 	})
 })

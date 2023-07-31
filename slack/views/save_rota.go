@@ -2,13 +2,13 @@ package views
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/rotabot-io/rotabot/slack/slackclient"
-
-	"github.com/jackc/pgx/v5/pgconn"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
 	"go.uber.org/zap"
@@ -20,15 +20,16 @@ import (
 	"github.com/slack-go/slack"
 )
 
-type AddRota struct {
+type SaveRota struct {
 	Queries *db.Queries
-	State   *AddRotaState
+	State   *SaveRotaState
 }
 
-type AddRotaState struct {
+type SaveRotaState struct {
 	TriggerID      string
 	ChannelID      string
 	TeamID         string
+	rotaID         string
 	rotaName       string
 	frequency      db.RotaFrequency
 	schedulingType db.RotaSchedule
@@ -36,35 +37,62 @@ type AddRotaState struct {
 	previousViewID string
 }
 
-type AddRotaProps struct {
+type SaveRotaProps struct {
 	title  *slack.TextBlockObject
 	submit *slack.TextBlockObject
 	close  *slack.TextBlockObject
 	blocks slack.Blocks
 }
 
-func (v AddRota) CallbackID() ViewType {
-	return VTAddRota
+func (v SaveRota) CallbackID() ViewType {
+	return VTSaveRota
 }
 
-func (v AddRota) DefaultState() interface{} {
-	return &AddRotaState{
+func (v SaveRota) DefaultState() interface{} {
+	return &SaveRotaState{
 		frequency:      db.RFWeekly,
 		schedulingType: db.RSCreated,
 	}
 }
 
-func (v AddRota) BuildProps(_ context.Context) (interface{}, error) {
+func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
+	var title *slack.TextBlockObject
+	var submit *slack.TextBlockObject
+	var rotaName string
+	var frequency db.RotaFrequency
+	var schedulingType db.RotaSchedule
+
+	l := zapctx.Logger(ctx)
+	if v.State.rotaID != "" {
+		rota, err := v.Queries.FindRotaByID(ctx, v.State.rotaID)
+		if err != nil {
+			l.Error("failed_to_find", zap.Error(err))
+			return nil, err
+		}
+		rotaName = rota.Name
+		frequency = rota.Metadata.Frequency
+		schedulingType = rota.Metadata.SchedulingType
+		title = block.NewDefaultText("Update Rota")
+		submit = block.NewDefaultText("Update")
+	} else {
+		title = block.NewDefaultText("Create Rota")
+		submit = block.NewDefaultText("Create")
+		rotaName = v.State.rotaName
+		frequency = v.State.frequency
+		schedulingType = v.State.schedulingType
+	}
+
 	blocks := []slack.Block{
 		block.NewTextInput(block.TextInput{
 			BlockID: "ROTA_NAME",
 			Label:   "Name:",
 			Hint:    "e.g. 'On Call'",
+			Value:   rotaName,
 		}),
 		block.NewStaticSelect(block.StaticSelect{
 			BlockID:       "ROTA_FREQUENCY",
 			Label:         "Frequency:",
-			InitialOption: block.StaticSelectOption{Text: string(v.State.frequency)},
+			InitialOption: block.StaticSelectOption{Text: string(frequency)},
 			Options: []block.StaticSelectOption{
 				{Text: string(db.RFDaily)},
 				{Text: string(db.RFWeekly)},
@@ -74,42 +102,34 @@ func (v AddRota) BuildProps(_ context.Context) (interface{}, error) {
 		block.NewStaticSelect(block.StaticSelect{
 			BlockID:       "ROTA_TYPE",
 			Label:         "Scheduling Type:",
-			InitialOption: block.StaticSelectOption{Text: string(v.State.schedulingType)},
+			InitialOption: block.StaticSelectOption{Text: string(schedulingType)},
 			Options: []block.StaticSelectOption{
 				{Text: string(db.RSCreated)},
 				{Text: string(db.RSRandom)},
 			},
 		}),
 	}
-	return &AddRotaProps{
-		title:  block.NewDefaultText("Create Rota:"),
-		submit: block.NewDefaultText("Create"),
+	return &SaveRotaProps{
+		title:  title,
+		submit: submit,
 		close:  block.NewDefaultText("Cancel"),
 		blocks: slack.Blocks{BlockSet: blocks},
 	}, nil
 }
 
-func (v AddRota) OnAction(ctx context.Context) (*gen.ActionResponse, error) {
+func (v SaveRota) OnAction(ctx context.Context) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Debug("action_view")
 	return &gen.ActionResponse{}, nil
 }
 
-func (v AddRota) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
+func (v SaveRota) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Debug("closing_view")
 	return &gen.ActionResponse{}, nil
 }
 
-func (v AddRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
+func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	id, err := v.Queries.SaveRota(ctx, db.SaveRotaParams{
-		TeamID:    v.State.TeamID,
-		ChannelID: v.State.ChannelID,
-		Name:      v.State.rotaName,
-		Metadata: db.RotaMetadata{
-			Frequency:      v.State.frequency,
-			SchedulingType: v.State.schedulingType,
-		},
-	})
+	id, err := saveOrUpdate(ctx, v)
 	if err != nil {
 		var pgError *pgconn.PgError
 		if errors.As(err, &pgError) {
@@ -160,6 +180,12 @@ func (v AddRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 		return nil, err
 	}
 
+	bytes, err := json.Marshal(Metadata{RotaID: id, ChannelID: v.State.ChannelID})
+	if err != nil {
+		l.Error("failed_to_marshal_metadata", zap.Error(err))
+		return nil, err
+	}
+
 	r := slack.ModalViewRequest{
 		Type:            slack.VTModal,
 		Title:           props.title,
@@ -167,7 +193,7 @@ func (v AddRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 		CallbackID:      string(h.CallbackID()),
 		NotifyOnClose:   true,
 		ClearOnClose:    true,
-		PrivateMetadata: v.State.ChannelID,
+		PrivateMetadata: string(bytes),
 	}
 	emptyHash := "" // This is empty to avoid slack thinking this view is outdated (and fail with a hash_conflict error)
 	if _, err = client.UpdateViewContext(ctx, r, v.State.externalID, emptyHash, v.State.previousViewID); err != nil {
@@ -177,12 +203,19 @@ func (v AddRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 	return &gen.ActionResponse{}, nil
 }
 
-func (v AddRota) Render(ctx context.Context, p interface{}) error {
+func (v SaveRota) Render(ctx context.Context, p interface{}) error {
 	l := zapctx.Logger(ctx)
-	props, ok := p.(*AddRotaProps)
+	props, ok := p.(*SaveRotaProps)
 	if !ok {
 		return errors.New("received invalid props")
 	}
+
+	bytes, err := json.Marshal(Metadata{ChannelID: v.State.ChannelID})
+	if err != nil {
+		l.Error("failed_to_marshal_metadata", zap.Error(err))
+		return err
+	}
+
 	view := slack.ModalViewRequest{
 		Type:            slack.VTModal,
 		Title:           props.title,
@@ -192,7 +225,7 @@ func (v AddRota) Render(ctx context.Context, p interface{}) error {
 		CallbackID:      string(v.CallbackID()),
 		NotifyOnClose:   true,
 		ClearOnClose:    true,
-		PrivateMetadata: v.State.ChannelID,
+		PrivateMetadata: string(bytes),
 	}
 	client, err := slackclient.ClientFor(ctx, v.State.TeamID)
 	if err != nil {
@@ -206,4 +239,35 @@ func (v AddRota) Render(ctx context.Context, p interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func saveOrUpdate(ctx context.Context, v SaveRota) (string, error) {
+	if v.State.rotaID != "" {
+		_, err := v.Queries.UpdateRota(ctx, db.UpdateRotaParams{
+			ID:   v.State.rotaID,
+			Name: v.State.rotaName,
+			Metadata: db.RotaMetadata{
+				Frequency:      v.State.frequency,
+				SchedulingType: v.State.schedulingType,
+			},
+		})
+		if err != nil {
+			return "", err
+		}
+		return v.State.rotaID, nil
+	} else {
+		id, err := v.Queries.SaveRota(ctx, db.SaveRotaParams{
+			TeamID:    v.State.TeamID,
+			ChannelID: v.State.ChannelID,
+			Name:      v.State.rotaName,
+			Metadata: db.RotaMetadata{
+				Frequency:      v.State.frequency,
+				SchedulingType: v.State.schedulingType,
+			},
+		})
+		if err != nil {
+			return "", err
+		}
+		return id, nil
+	}
 }

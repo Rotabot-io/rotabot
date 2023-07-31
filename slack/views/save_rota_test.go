@@ -15,12 +15,12 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-var _ = Describe("AddRota", func() {
+var _ = Describe("SaveRota", func() {
 	var (
 		ctx     context.Context
 		sc      *mock_slackclient.MockSlackClient
 		queries *db.Queries
-		addRota *AddRota
+		addRota *SaveRota
 
 		channelID string
 		teamID    string
@@ -53,20 +53,20 @@ var _ = Describe("AddRota", func() {
 			conn.Close(ctx)
 		})
 
-		addRota = &AddRota{
+		addRota = &SaveRota{
 			Queries: queries,
 		}
 	})
 
 	Describe("Callback", func() {
 		It("resolves a home view without actions", func() {
-			Expect(addRota.CallbackID()).To(Equal(VTAddRota))
+			Expect(addRota.CallbackID()).To(Equal(VTSaveRota))
 		})
 	})
 
 	Describe("DefaultState", func() {
 		It("returns a default state", func() {
-			expectedState := &AddRotaState{
+			expectedState := &SaveRotaState{
 				frequency:      db.RFWeekly,
 				schedulingType: db.RSCreated,
 			}
@@ -76,44 +76,93 @@ var _ = Describe("AddRota", func() {
 	})
 
 	Describe("BuildProps", func() {
-		BeforeEach(func() {
-			addRota.State = &AddRotaState{
-				TriggerID: triggerID,
-				ChannelID: channelID,
-				TeamID:    teamID,
-			}
+		When("Rota does not exist", func() {
+			BeforeEach(func() {
+				addRota.State = &SaveRotaState{
+					TriggerID: triggerID,
+					ChannelID: channelID,
+					TeamID:    teamID,
+				}
+			})
+			It("builds props with the correct values in the state", func() {
+				addRota.State = &SaveRotaState{
+					TriggerID:      triggerID,
+					ChannelID:      channelID,
+					TeamID:         teamID,
+					frequency:      db.RFMonthly,
+					schedulingType: db.RSRandom,
+				}
+
+				p, err := addRota.BuildProps(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
+
+				props := p.(*SaveRotaProps)
+				Expect(props.title.Text).To(Equal("Create Rota"))
+				Expect(props.close.Text).To(Equal("Cancel"))
+				Expect(props.submit.Text).To(Equal("Create"))
+
+				Expect(props.blocks.BlockSet).To(HaveLen(3))
+				Expect(props.blocks.BlockSet[0]).To(BeAssignableToTypeOf(&slack.InputBlock{}))
+				Expect(props.blocks.BlockSet[1]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+				Expect(props.blocks.BlockSet[2]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+
+				inputBlock := props.blocks.BlockSet[0].(*slack.InputBlock)
+				Expect(inputBlock.BlockID).To(Equal("ROTA_NAME"))
+
+				frequencySelect := props.blocks.BlockSet[1].(*slack.SectionBlock)
+				Expect(frequencySelect.BlockID).To(Equal("ROTA_FREQUENCY"))
+
+				schedulingType := props.blocks.BlockSet[2].(*slack.SectionBlock)
+				Expect(schedulingType.BlockID).To(Equal("ROTA_TYPE"))
+			})
 		})
-		It("builds props with the correct values in the state", func() {
-			addRota.State = &AddRotaState{
-				TriggerID:      triggerID,
-				ChannelID:      channelID,
-				TeamID:         teamID,
-				frequency:      db.RFMonthly,
-				schedulingType: db.RSRandom,
-			}
 
-			p, err := addRota.BuildProps(ctx)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(p).To(BeAssignableToTypeOf(&AddRotaProps{}))
+		When("Rota does exist", func() {
+			BeforeEach(func() {
+				id, err := queries.SaveRota(ctx, db.SaveRotaParams{
+					Name:      "Test Rota",
+					TeamID:    teamID,
+					ChannelID: channelID,
+					Metadata: db.RotaMetadata{
+						Frequency:      db.RFMonthly,
+						SchedulingType: db.RSRandom,
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
 
-			props := p.(*AddRotaProps)
-			Expect(props.title.Text).To(Equal("Create Rota:"))
-			Expect(props.close.Text).To(Equal("Cancel"))
-			Expect(props.submit.Text).To(Equal("Create"))
+				addRota.State = &SaveRotaState{
+					rotaID:    id,
+					TriggerID: triggerID,
+					ChannelID: channelID,
+					TeamID:    teamID,
+				}
+			})
+			It("builds the props with the values from the rota", func() {
+				p, err := addRota.BuildProps(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
 
-			Expect(props.blocks.BlockSet).To(HaveLen(3))
-			Expect(props.blocks.BlockSet[0]).To(BeAssignableToTypeOf(&slack.InputBlock{}))
-			Expect(props.blocks.BlockSet[1]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
-			Expect(props.blocks.BlockSet[2]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+				props := p.(*SaveRotaProps)
+				Expect(props.title.Text).To(Equal("Update Rota"))
+				Expect(props.close.Text).To(Equal("Cancel"))
+				Expect(props.submit.Text).To(Equal("Update"))
 
-			inputBlock := props.blocks.BlockSet[0].(*slack.InputBlock)
-			Expect(inputBlock.BlockID).To(Equal("ROTA_NAME"))
+				Expect(props.blocks.BlockSet).To(HaveLen(3))
+				Expect(props.blocks.BlockSet[0]).To(BeAssignableToTypeOf(&slack.InputBlock{}))
+				Expect(props.blocks.BlockSet[1]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+				Expect(props.blocks.BlockSet[2]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 
-			frequencySelect := props.blocks.BlockSet[1].(*slack.SectionBlock)
-			Expect(frequencySelect.BlockID).To(Equal("ROTA_FREQUENCY"))
+				inputBlock := props.blocks.BlockSet[0].(*slack.InputBlock)
+				Expect(inputBlock.BlockID).To(Equal("ROTA_NAME"))
+				Expect(inputBlock.Element.(*slack.PlainTextInputBlockElement).InitialValue).To(Equal("Test Rota"))
 
-			schedulingType := props.blocks.BlockSet[2].(*slack.SectionBlock)
-			Expect(schedulingType.BlockID).To(Equal("ROTA_TYPE"))
+				frequencySelect := props.blocks.BlockSet[1].(*slack.SectionBlock)
+				Expect(frequencySelect.BlockID).To(Equal("ROTA_FREQUENCY"))
+
+				schedulingType := props.blocks.BlockSet[2].(*slack.SectionBlock)
+				Expect(schedulingType.BlockID).To(Equal("ROTA_TYPE"))
+			})
 		})
 	})
 
@@ -147,7 +196,7 @@ var _ = Describe("AddRota", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				addRota.State = &AddRotaState{
+				addRota.State = &SaveRotaState{
 					TriggerID:      triggerID,
 					ChannelID:      channelID,
 					TeamID:         teamID,
@@ -172,7 +221,7 @@ var _ = Describe("AddRota", func() {
 		})
 		When("the user creates a rota that does not exist", func() {
 			It("creates the rota and updates the home view", func() {
-				addRota.State = &AddRotaState{
+				addRota.State = &SaveRotaState{
 					TriggerID:      triggerID,
 					ChannelID:      channelID,
 					TeamID:         teamID,
@@ -198,7 +247,7 @@ var _ = Describe("AddRota", func() {
 
 	Describe("Render", func() {
 		BeforeEach(func() {
-			addRota.State = &AddRotaState{
+			addRota.State = &SaveRotaState{
 				TriggerID: triggerID,
 				ChannelID: channelID,
 				TeamID:    teamID,
@@ -208,8 +257,8 @@ var _ = Describe("AddRota", func() {
 		It("calls slack to open modal", func() {
 			p, err := addRota.BuildProps(ctx)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(p).To(BeAssignableToTypeOf(&AddRotaProps{}))
-			props := p.(*AddRotaProps)
+			Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
+			props := p.(*SaveRotaProps)
 
 			expectedView := slack.ModalViewRequest{
 				Type:            slack.VTModal,
@@ -217,10 +266,10 @@ var _ = Describe("AddRota", func() {
 				Blocks:          props.blocks,
 				Close:           props.close,
 				Submit:          props.submit,
-				CallbackID:      string(VTAddRota),
+				CallbackID:      string(VTSaveRota),
 				NotifyOnClose:   true,
 				ClearOnClose:    true,
-				PrivateMetadata: addRota.State.ChannelID,
+				PrivateMetadata: "{\"rota_id\":\"\",\"channel_id\":\"CH123\"}",
 			}
 			sc.EXPECT().
 				OpenViewContext(ctx, addRota.State.TriggerID, expectedView).
