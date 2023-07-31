@@ -10,3 +10,9 @@ CREATE TABLE ROTAS
 );
 
 CREATE UNIQUE INDEX idx_unique_rota_within_team_and_channel ON ROTAS (NAME, CHANNEL_ID, TEAM_ID);
+
+CREATE TRIGGER rotas_updated_at_trigger
+    BEFORE UPDATE
+    ON ROTAS
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_set_timestamp();
