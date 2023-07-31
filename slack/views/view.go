@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"encoding/json"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
 )
@@ -9,9 +10,27 @@ import (
 type ViewType string
 
 const (
-	VTHome    = ViewType("Home")
-	VTAddRota = ViewType("AddRota")
+	VTHome     = ViewType("Home")
+	VTSaveRota = ViewType("SaveRota")
 )
+
+type Metadata struct {
+	RotaID    string `json:"rota_id"`
+	ChannelID string `json:"channel_id"`
+}
+
+func (m Metadata) ToJson() (string, error) {
+	bytes, err := json.Marshal(m)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func (m Metadata) FromJson(payload string) error {
+	bytes := []byte(payload)
+	return json.Unmarshal(bytes, &m)
+}
 
 type View interface {
 	CallbackID() ViewType

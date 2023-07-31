@@ -11,14 +11,14 @@ var _ = DescribeTable("OverflowSection",
 		o := NewOverflowSectionElement(i)
 
 		Expect(o.Type).To(Equal(slack.MBTSection))
-		Expect(o.BlockID).To(Equal(blockId))
+		Expect(o.BlockID).To(Equal(i.ElementID))
 		Expect(o.Fields).To(BeNil())
 
 		Expect(o.Text.Text).To(Equal(i.ElementName))
 		Expect(o.Text.Type).To(Equal(slack.PlainTextType))
 
 		Expect(o.Accessory.OverflowElement.Type).To(Equal(slack.METOverflow))
-		Expect(o.Accessory.OverflowElement.ActionID).To(Equal(blockId))
+		Expect(o.Accessory.OverflowElement.ActionID).To(Equal(i.SectionName))
 		Expect(len(o.Accessory.OverflowElement.Options)).To(Equal(len(opts)))
 
 		for inx, option := range opts {
@@ -34,20 +34,20 @@ var _ = DescribeTable("OverflowSection",
 		OverflowSection{
 			ElementID:   "ElementID",
 			ElementName: "ElementName",
-			BlockID:     "BlockID",
+			SectionName: "SectionName",
 		},
 		"BlockID_ElementID",
 		[]slack.OptionBlockObject{},
 	),
 	Entry(
-		"One Action",
+		"One action",
 		OverflowSection{
 			ElementID:   "ElementID",
 			ElementName: "ElementName",
-			BlockID:     "BlockID",
+			SectionName: "SectionName",
 			Actions: []OverflowAction{
 				{
-					Action: "Action",
+					Action: "action",
 					Name:   "Name",
 				},
 			},
@@ -56,7 +56,7 @@ var _ = DescribeTable("OverflowSection",
 		[]slack.OptionBlockObject{
 			{
 				Text:  NewDefaultText("Name"),
-				Value: "Action_ElementID",
+				Value: "action",
 			},
 		}),
 	Entry(
@@ -64,18 +64,18 @@ var _ = DescribeTable("OverflowSection",
 		OverflowSection{
 			ElementID:   "ElementID",
 			ElementName: "ElementName",
-			BlockID:     "BlockID",
+			SectionName: "SectionName",
 			Actions: []OverflowAction{
 				{
-					Action: "Action#1",
+					Action: "action#1",
 					Name:   "Name#1",
 				},
 				{
-					Action: "Action#2",
+					Action: "action#2",
 					Name:   "Name#2",
 				},
 				{
-					Action: "Action#3",
+					Action: "action#3",
 					Name:   "Name#3",
 				},
 			},
@@ -84,15 +84,15 @@ var _ = DescribeTable("OverflowSection",
 		[]slack.OptionBlockObject{
 			{
 				Text:  NewDefaultText("Name#1"),
-				Value: "Action#1_ElementID",
+				Value: "action#1",
 			},
 			{
 				Text:  NewDefaultText("Name#2"),
-				Value: "Action#2_ElementID",
+				Value: "action#2",
 			},
 			{
 				Text:  NewDefaultText("Name#3"),
-				Value: "Action#3_ElementID",
+				Value: "action#3",
 			},
 		}),
 )

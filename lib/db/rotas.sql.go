@@ -9,6 +9,27 @@ import (
 	"context"
 )
 
+const findRotaByID = `-- name: FindRotaByID :one
+SELECT rotas.id, rotas.team_id, rotas.channel_id, rotas.name, rotas.metadata, rotas.created_at, rotas.updated_at
+FROM ROTAS
+WHERE ID = $1
+`
+
+func (q *Queries) FindRotaByID(ctx context.Context, id string) (Rota, error) {
+	row := q.db.QueryRow(ctx, findRotaByID, id)
+	var i Rota
+	err := row.Scan(
+		&i.ID,
+		&i.TeamID,
+		&i.ChannelID,
+		&i.Name,
+		&i.Metadata,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listRotasByChannel = `-- name: ListRotasByChannel :many
 SELECT rotas.id, rotas.team_id, rotas.channel_id, rotas.name, rotas.metadata, rotas.created_at, rotas.updated_at
 from ROTAS
@@ -51,8 +72,7 @@ func (q *Queries) ListRotasByChannel(ctx context.Context, arg ListRotasByChannel
 
 const saveRota = `-- name: SaveRota :one
 INSERT INTO ROTAS (TEAM_ID, CHANNEL_ID, NAME, METADATA)
-VALUES ($1, $2, $3, $4)
-RETURNING ID
+VALUES ($1, $2, $3, $4) RETURNING ID
 `
 
 type SaveRotaParams struct {
@@ -69,6 +89,27 @@ func (q *Queries) SaveRota(ctx context.Context, arg SaveRotaParams) (string, err
 		arg.Name,
 		arg.Metadata,
 	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
+const updateRota = `-- name: UpdateRota :one
+UPDATE ROTAS
+SET NAME       = $1,
+    METADATA   = $2
+WHERE ID = $3
+RETURNING ID
+`
+
+type UpdateRotaParams struct {
+	Name     string       `json:"name"`
+	Metadata RotaMetadata `json:"metadata"`
+	ID       string       `json:"id"`
+}
+
+func (q *Queries) UpdateRota(ctx context.Context, arg UpdateRotaParams) (string, error) {
+	row := q.db.QueryRow(ctx, updateRota, arg.Name, arg.Metadata, arg.ID)
 	var id string
 	err := row.Scan(&id)
 	return id, err

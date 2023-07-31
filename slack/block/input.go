@@ -6,6 +6,7 @@ type TextInput struct {
 	BlockID string
 	Label   string
 	Hint    string
+	Value   string
 }
 
 func NewTextInput(input TextInput) *slack.InputBlock {
@@ -13,9 +14,10 @@ func NewTextInput(input TextInput) *slack.InputBlock {
 		Type:    slack.MBTInput,
 		BlockID: input.BlockID,
 		Element: &slack.PlainTextInputBlockElement{
-			Type:        slack.METPlainTextInput,
-			ActionID:    input.BlockID,
-			Placeholder: NewDefaultText(input.Hint),
+			Type:         slack.METPlainTextInput,
+			ActionID:     input.BlockID,
+			Placeholder:  NewDefaultText(input.Hint),
+			InitialValue: input.Value,
 		},
 		Label: NewDefaultText(input.Label),
 	}
