@@ -31,6 +31,12 @@ linters:
     - usestdlibvars
     - wastedassign
 
+run:
+  skip-dirs:
+    - gen
+    - slack/slackclient/mock_slackclient
+  skip-files:
+    - slack/slackclient/client_interface.go
 
 linters-settings:
   errorlint:

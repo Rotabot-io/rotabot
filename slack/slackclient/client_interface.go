@@ -4,9 +4,8 @@ package slackclient
 
 import (
 	"context"
-	"io"
-
 	"github.com/slack-go/slack"
+	"io"
 )
 
 // SlackClient is an interface generated for "github.com/slack-go/slack.Client".
