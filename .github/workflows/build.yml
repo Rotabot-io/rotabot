@@ -1,7 +1,5 @@
 name: build
-
 permissions: {} # no need any permissions
-
 on:
   push:
     branches: [main]
@@ -10,7 +8,6 @@ on:
   schedule:
     - cron: '0 10 * * 1' # run "At 10:00 on Monday"
   workflow_call:
-
 jobs:
   run:
     name: Build
@@ -21,38 +18,28 @@ jobs:
       matrix:
         # There's currently an issue with 1.20.6 and testcontainers
         go: ['1.20.5']
-
     steps:
       - name: Check out code
         uses: actions/checkout@v3
-
       - name: Install Go
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
           check-latest: true
-
       - name: Go Format
         run: gofmt -s -w . && git diff --exit-code
-
       - name: Go Vet
         run: go vet ./...
-
       - name: Go Tidy
         run: go mod tidy && git diff --exit-code
-
       - name: Go Mod
         run: go mod download
-
       - name: Go Mod Verify
         run: go mod verify
-
       - name: Go Build
         run: make build
-
       - name: Go Test
         run: make test
-
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
         continue-on-error: true
@@ -60,7 +47,6 @@ jobs:
           token: ${{secrets.CODECOV_TOKEN}}
           file: ./cover.profile
           fail_ci_if_error: false
-
       - name: Test Summary
         uses: test-summary/action@v2
         with:
