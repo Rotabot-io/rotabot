@@ -27,6 +27,8 @@ jobs:
           check-latest: true
       - name: Go Format
         run: gofmt -s -w . && git diff --exit-code
+      - name: Go Tidy
+        run: go mod tidy && git diff --exit-code
       - name: Go Vet
         run: go vet ./...
       - name: Go Mod
@@ -34,7 +36,8 @@ jobs:
       - name: Go Mod Verify
         run: go mod verify
       - name: Generate
-        run: make generate && git diff --exit-code
+        # Running go mod tidy because goa's dependency will generate undesired changes
+        run: make generate && go mod tidy && git diff --exit-code
       - name: Go Build
         run: make build
       - name: Go Test
