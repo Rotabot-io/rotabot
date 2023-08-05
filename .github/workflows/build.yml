@@ -29,12 +29,12 @@ jobs:
         run: gofmt -s -w . && git diff --exit-code
       - name: Go Vet
         run: go vet ./...
-      - name: Go Tidy
-        run: go mod tidy && git diff --exit-code
       - name: Go Mod
         run: go mod download
       - name: Go Mod Verify
         run: go mod verify
+      - name: Generate
+        run: make generate && git diff --exit-code
       - name: Go Build
         run: make build
       - name: Go Test
