@@ -37,6 +37,7 @@ jobs:
         run: go mod verify
       - name: Install deps
         run: |
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
           go install goa.design/goa/v3/cmd/goa@v3
           go install github.com/rjeczalik/interfaces/cmd/interfacer@latest
           go install go.uber.org/mock/mockgen@latest
