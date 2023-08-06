@@ -31,8 +31,10 @@ jobs:
         run: go mod tidy && git diff --exit-code
       - name: Go Vet
         run: go vet ./...
-      - name: Go Mod
+      - name: Go Download
         run: go mod download
+      - name: Make Install
+        run: make install
       - name: Go Mod Verify
         run: go mod verify
       - name: Generate
