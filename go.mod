@@ -9,7 +9,7 @@ require (
 	github.com/getsentry/sentry-go v0.23.0
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/google/uuid v1.3.0
-	github.com/jackc/pgx/v5 v5.4.2
+	github.com/jackc/pgx/v5 v5.4.3
 	github.com/lib/pq v1.10.9
 	github.com/oklog/run v1.1.0
 	github.com/onsi/ginkgo/v2 v2.11.0
