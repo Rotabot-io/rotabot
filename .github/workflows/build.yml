@@ -35,12 +35,14 @@ jobs:
         run: go mod download
       - name: Go Mod Verify
         run: go mod verify
-      - name: Generate
-        # installing only the bare minimum to run make generate
+      - name: Install deps
         run: |
           go install goa.design/goa/v3/cmd/goa@v3
           go install github.com/rjeczalik/interfaces/cmd/interfacer@latest
           go install go.uber.org/mock/mockgen@latest
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+      - name: Generate
+        run: |
           make generate
           go mod tidy # Running go mod tidy because goa's dependency will generate undesired changes
           git diff --exit-code
