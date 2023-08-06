@@ -63,7 +63,7 @@ install:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install mvdan.cc/gofumpt@latest
 	go install goa.design/goa/v3/cmd/goa@v3
-	go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 	go install github.com/onsi/ginkgo/v2/ginkgo@latest
 	go install github.com/rjeczalik/interfaces/cmd/interfacer@latest
 	go install go.uber.org/mock/mockgen@latest
