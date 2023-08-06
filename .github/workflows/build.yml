@@ -33,13 +33,17 @@ jobs:
         run: go vet ./...
       - name: Go Download
         run: go mod download
-      - name: Make Install
-        run: make install
       - name: Go Mod Verify
         run: go mod verify
       - name: Generate
-        # Running go mod tidy because goa's dependency will generate undesired changes
-        run: make generate && go mod tidy && git diff --exit-code
+        # installing only the bare minimum to run make generate
+        run: |
+          go install goa.design/goa/v3/cmd/goa@v3
+          go install github.com/rjeczalik/interfaces/cmd/interfacer@latest
+          go install go.uber.org/mock/mockgen@latest
+          make generate
+          go mod tidy # Running go mod tidy because goa's dependency will generate undesired changes
+          git diff --exit-code
       - name: Go Build
         run: make build
       - name: Go Test
