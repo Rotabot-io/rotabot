@@ -34,12 +34,11 @@ generate:
 
 .PHONY: test
 test:
-	go run github.com/onsi/ginkgo/v2/ginkgo  -r \
+	go run github.com/onsi/ginkgo/v2/ginkgo -r -p \
 		-randomize-all \
 		-randomize-suites \
 		-race \
 		-trace \
-		-procs=2 \
 		-poll-progress-after=10s \
 		-poll-progress-interval=10s \
 		--cover --coverprofile=cover.profile \

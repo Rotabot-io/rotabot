@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        go: ['stable']
+        go: ['oldstable', 'stable']
     steps:
       - name: Check out code
         uses: actions/checkout@v3
