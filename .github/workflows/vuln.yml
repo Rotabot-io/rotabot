@@ -13,8 +13,6 @@ jobs:
     name: Vuln
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: true
     steps:
       - name: Install Go
         uses: actions/setup-go@v4
