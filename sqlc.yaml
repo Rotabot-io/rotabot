@@ -13,3 +13,12 @@ sql:
           - column: "rotas.metadata"
             go_type:
               type: "RotaMetadata"
+    database:
+      uri: "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+    rules:
+      - sqlc/db-prepare
+      - has-index
+rules:
+  - name: has-index
+    rule: >
+      query.sql.startsWith("SELECT") && !(postgresql.explain.plan.plans.all(p, has(p.index_name) || p.plans.all(p, has(p.index_name))))
