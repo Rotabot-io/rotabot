@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/jackc/pgx/v5"
+
 	gen "github.com/rotabot-io/rotabot/gen/slack"
 )
 
@@ -35,9 +37,9 @@ func (m Metadata) FromJson(payload string) error {
 type View interface {
 	CallbackID() ViewType
 	DefaultState() interface{}
-	BuildProps(ctx context.Context) (interface{}, error)
-	OnAction(ctx context.Context) (*gen.ActionResponse, error)
-	OnClose(ctx context.Context) (*gen.ActionResponse, error)
-	OnSubmit(ctx context.Context) (*gen.ActionResponse, error)
+	BuildProps(ctx context.Context, tx pgx.Tx) (interface{}, error)
+	OnAction(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error)
+	OnClose(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error)
+	OnSubmit(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error)
 	Render(ctx context.Context, props interface{}) error
 }

@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/getsentry/sentry-go"
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5"
+	"github.com/rotabot-io/rotabot/lib/core"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
@@ -21,8 +22,7 @@ import (
 )
 
 type SaveRota struct {
-	Queries *db.Queries
-	State   *SaveRotaState
+	State *SaveRotaState
 }
 
 type SaveRotaState struct {
@@ -55,7 +55,7 @@ func (v SaveRota) DefaultState() interface{} {
 	}
 }
 
-func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
+func (v SaveRota) BuildProps(ctx context.Context, tx pgx.Tx) (interface{}, error) {
 	var title *slack.TextBlockObject
 	var submit *slack.TextBlockObject
 	var rotaName string
@@ -64,7 +64,7 @@ func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 
 	l := zapctx.Logger(ctx)
 	if v.State.rotaID != "" {
-		rota, err := v.Queries.FindRotaByID(ctx, v.State.rotaID)
+		rota, err := db.New(tx).FindRotaByID(ctx, v.State.rotaID)
 		if err != nil {
 			l.Error("failed_to_find", zap.Error(err))
 			return nil, err
@@ -117,49 +117,48 @@ func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 	}, nil
 }
 
-func (v SaveRota) OnAction(ctx context.Context) (*gen.ActionResponse, error) {
+func (v SaveRota) OnAction(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Debug("action_view")
 	return &gen.ActionResponse{}, nil
 }
 
-func (v SaveRota) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
+func (v SaveRota) OnClose(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Debug("closing_view")
 	return &gen.ActionResponse{}, nil
 }
 
-func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
+func (v SaveRota) OnSubmit(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	id, err := saveOrUpdate(ctx, v)
+	id, err := core.CreateOrUpdateRota(ctx, tx, core.CreateOrUpdateRotaParams{
+		RotaID:    v.State.rotaID,
+		TeamID:    v.State.TeamID,
+		ChannelID: v.State.ChannelID,
+		Name:      v.State.rotaName,
+		Metadata:  db.RotaMetadata{Frequency: v.State.frequency, SchedulingType: v.State.schedulingType},
+	})
 	if err != nil {
-		var pgError *pgconn.PgError
-		if errors.As(err, &pgError) {
-			switch pgError.Code {
-			case "23505":
-				// TODO: handle this error in a better way
-				// duplicate key value violates unique constraint
-				response := string(slack.RAErrors)
-				return &gen.ActionResponse{
-					ResponseAction: &response,
-					Errors: map[string]string{
-						"ROTA_NAME": "A rota with this name already exists in this channel.",
-					},
-				}, nil
-			}
+		if errors.Is(err, core.ErrAlreadyExists) {
+			response := string(slack.RAErrors)
+			return &gen.ActionResponse{
+				ResponseAction: &response,
+				Errors: map[string]string{
+					"ROTA_NAME": "A rota with this name already exists in this channel.",
+				},
+			}, nil
 		}
-		l.Error("failed to save rota", zap.Error(err))
+		l.Error("failed_to_create_or_update_rota", zap.Error(err))
 		return nil, err
 	}
 	l.Info("saved_rota", zap.String("id", id))
 
 	h := Home{
-		Queries: v.Queries,
 		State: &HomeState{
 			TriggerID: v.State.TriggerID,
 			ChannelID: v.State.ChannelID,
 			TeamID:    v.State.TeamID,
 		},
 	}
-	p, err := h.BuildProps(ctx)
+	p, err := h.BuildProps(ctx, tx)
 	if err != nil {
 		l.Error("failed_to_build_home_props", zap.Error(err))
 		return nil, err
@@ -239,35 +238,4 @@ func (v SaveRota) Render(ctx context.Context, p interface{}) error {
 		return err
 	}
 	return nil
-}
-
-func saveOrUpdate(ctx context.Context, v SaveRota) (string, error) {
-	if v.State.rotaID != "" {
-		_, err := v.Queries.UpdateRota(ctx, db.UpdateRotaParams{
-			ID:   v.State.rotaID,
-			Name: v.State.rotaName,
-			Metadata: db.RotaMetadata{
-				Frequency:      v.State.frequency,
-				SchedulingType: v.State.schedulingType,
-			},
-		})
-		if err != nil {
-			return "", err
-		}
-		return v.State.rotaID, nil
-	} else {
-		id, err := v.Queries.SaveRota(ctx, db.SaveRotaParams{
-			TeamID:    v.State.TeamID,
-			ChannelID: v.State.ChannelID,
-			Name:      v.State.rotaName,
-			Metadata: db.RotaMetadata{
-				Frequency:      v.State.frequency,
-				SchedulingType: v.State.schedulingType,
-			},
-		})
-		if err != nil {
-			return "", err
-		}
-		return id, nil
-	}
 }

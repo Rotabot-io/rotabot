@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/rotabot-io/rotabot/internal"
-	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/urfave/cli/v2"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -71,20 +68,6 @@ func provideConnString(c *cli.Context) (string, error) {
 		return dsn, nil
 	}
 	return "", errors.New("provideConnString not found")
-}
-
-func provideQueries(ctx context.Context, dsn string) (*db.Queries, error) {
-	logger := zapctx.Logger(ctx)
-	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		logger.Error("unable to connect to database", zap.Error(err))
-		return nil, err
-	}
-	return db.New(pool), nil
-}
-
-func provideSlackService(_ context.Context, q *db.Queries) genSlack.Service {
-	return slack.New(q)
 }
 
 func provideSentry(ctx context.Context, c *cli.Context) error {

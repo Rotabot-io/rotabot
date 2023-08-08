@@ -11,17 +11,14 @@ import (
 
 var _ = Describe("Resolver", func() {
 	var ctx context.Context
-	var queries *db.Queries
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		queries = &db.Queries{}
 	})
 
 	Describe("Home", func() {
 		It("resolves a home view without actions", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						CallbackID:      string(VTHome),
@@ -48,7 +45,6 @@ var _ = Describe("Resolver", func() {
 
 		It("resolves save view action without rota_id to trigger a create", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						PrivateMetadata: "{\"rota_id\":\"ROTA_ID\",\"channel_id\":\"C123\"}",
@@ -76,7 +72,6 @@ var _ = Describe("Resolver", func() {
 
 		It("resolves save view action with the rota_id to trigger an update", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						PrivateMetadata: "{\"rota_id\":\"ROTA_ID\",\"channel_id\":\"C123\"}",
@@ -109,7 +104,6 @@ var _ = Describe("Resolver", func() {
 	Describe("SaveRota", func() {
 		It("resolves a add rota view with default state", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						CallbackID:      string(VTSaveRota),
@@ -145,7 +139,6 @@ var _ = Describe("Resolver", func() {
 
 		It("resolves a add rota view with the state given on the action", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						CallbackID:      string(VTSaveRota),

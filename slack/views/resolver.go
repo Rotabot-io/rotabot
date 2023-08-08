@@ -16,8 +16,7 @@ import (
 )
 
 type ResolverParams struct {
-	Action  slack.InteractionCallback
-	Queries *db.Queries
+	Action slack.InteractionCallback
 }
 
 func Resolve(ctx context.Context, p ResolverParams) (View, error) {
@@ -39,9 +38,7 @@ func resolveHomeView(ctx context.Context, p ResolverParams) (View, error) {
 		return nil, err
 	}
 
-	view := &Home{
-		Queries: p.Queries,
-	}
+	view := &Home{}
 	view.State = view.DefaultState().(*HomeState)
 	view.State.TriggerID = p.Action.TriggerID
 	view.State.TeamID = p.Action.Team.ID
@@ -66,9 +63,7 @@ func resolveSaveRota(ctx context.Context, p ResolverParams) (View, error) {
 		return nil, err
 	}
 
-	view := &SaveRota{
-		Queries: p.Queries,
-	}
+	view := &SaveRota{}
 	view.State = view.DefaultState().(*SaveRotaState)
 	view.State.TriggerID = p.Action.TriggerID
 	view.State.rotaID = m.RotaID

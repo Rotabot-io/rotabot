@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/getsentry/sentry-go"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 	"github.com/slack-go/slack/slackevents"
 
@@ -18,17 +21,16 @@ import (
 	"go.uber.org/zap"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
-	"github.com/rotabot-io/rotabot/lib/db"
 )
 
-func New(q *db.Queries) gen.Service {
+func New(pool *pgxpool.Pool) gen.Service {
 	return &svc{
-		queries: q,
+		conn: pool,
 	}
 }
 
 type svc struct {
-	queries *db.Queries
+	conn *pgxpool.Pool
 }
 
 func (s svc) Commands(ctx context.Context, c *gen.Command) error {
@@ -48,15 +50,25 @@ func (s svc) Commands(ctx context.Context, c *gen.Command) error {
 	ctx = slackclient.WithClient(ctx, client)
 
 	view := views.Home{
-		Queries: s.queries,
 		State: &views.HomeState{
 			TriggerID: c.TriggerID,
 			ChannelID: c.ChannelID,
 			TeamID:    c.TeamID,
 		},
 	}
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		l.Error("failed to begin transaction", zap.Error(err))
+		return goaerrors.NewInternalError()
+	}
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			l.Error("failed to rollback transaction", zap.Error(err))
+		}
+	}(tx, ctx)
 
-	p, err := view.BuildProps(ctx)
+	p, err := view.BuildProps(ctx, tx)
 	if err != nil {
 		l.Error("failed to build props", zap.Error(err))
 		return goaerrors.NewInternalError()
@@ -96,22 +108,31 @@ func (s svc) MessageActions(ctx context.Context, event *gen.Action) (*gen.Action
 	}
 	ctx = slackclient.WithClient(ctx, client)
 
-	view, err := views.Resolve(ctx, views.ResolverParams{
-		Action:  action,
-		Queries: s.queries,
-	})
+	view, err := views.Resolve(ctx, views.ResolverParams{Action: action})
 	if err != nil {
 		l.Error("failed to resolve view", zap.Error(err))
 		return nil, goaerrors.NewInternalError()
 	}
+
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		l.Error("failed to begin transaction", zap.Error(err))
+		return nil, goaerrors.NewInternalError()
+	}
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			l.Error("failed to rollback transaction", zap.Error(err))
+		}
+	}(tx, ctx)
 	// We only use views for now so these are the only events that make sense for us to handle.
 	switch action.Type { // nolint:exhaustive
 	case slack.InteractionTypeBlockActions:
-		return view.OnAction(ctx)
+		return view.OnAction(ctx, tx)
 	case slack.InteractionTypeViewSubmission:
-		return view.OnSubmit(ctx)
+		return view.OnSubmit(ctx, tx)
 	case slack.InteractionTypeViewClosed:
-		return view.OnClose(ctx)
+		return view.OnClose(ctx, tx)
 	default:
 		sentry.CaptureMessage(fmt.Sprintf("unknown_action_type: %s", action.Type))
 		l.Warn("unknown_action_type", zap.String("type", string(action.Type)))

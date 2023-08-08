@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
 	"github.com/getsentry/sentry-go"
@@ -33,8 +34,7 @@ const (
 )
 
 type Home struct {
-	Queries *db.Queries
-	State   *HomeState
+	State *HomeState
 }
 
 type HomeState struct {
@@ -58,9 +58,9 @@ func (v Home) DefaultState() interface{} {
 	return &HomeState{}
 }
 
-func (v Home) BuildProps(ctx context.Context) (interface{}, error) {
+func (v Home) BuildProps(ctx context.Context, tx pgx.Tx) (interface{}, error) {
 	l := zapctx.Logger(ctx)
-	rotas, err := v.Queries.ListRotasByChannel(ctx, db.ListRotasByChannelParams{ChannelID: v.State.ChannelID, TeamID: v.State.TeamID})
+	rotas, err := db.New(tx).ListRotasByChannel(ctx, db.ListRotasByChannelParams{ChannelID: v.State.ChannelID, TeamID: v.State.TeamID})
 	if err != nil {
 		l.Error("failed to list rotas", zap.Error(err))
 		return nil, goaerrors.NewInternalError()
@@ -93,10 +93,10 @@ func (v Home) BuildProps(ctx context.Context) (interface{}, error) {
 	}, nil
 }
 
-func (v Home) OnAction(ctx context.Context) (*gen.ActionResponse, error) {
+func (v Home) OnAction(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	switch v.State.action {
 	case HASaveRota:
-		return handleAddRotaAction(ctx, v)
+		return v.handleAddRotaAction(ctx, tx)
 	default:
 		zapctx.Logger(ctx).Warn("unknown_action", zap.String("action", string(v.State.action)))
 		sentry.CaptureMessage("unknown_action")
@@ -104,12 +104,12 @@ func (v Home) OnAction(ctx context.Context) (*gen.ActionResponse, error) {
 	}
 }
 
-func (v Home) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
+func (v Home) OnClose(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Debug("closing_home_view")
 	return &gen.ActionResponse{}, nil
 }
 
-func (v Home) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
+func (v Home) OnSubmit(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Error("submitting_home_view")
 	return nil, goaerrors.NewInternalError()
 }
@@ -151,17 +151,15 @@ func (v Home) Render(ctx context.Context, p interface{}) error {
 	return err
 }
 
-func handleAddRotaAction(ctx context.Context, v Home) (*gen.ActionResponse, error) {
+func (v Home) handleAddRotaAction(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	view := SaveRota{
-		Queries: v.Queries,
-	}
+	view := SaveRota{}
 	view.State = view.DefaultState().(*SaveRotaState)
 	view.State.ChannelID = v.State.ChannelID
 	view.State.TeamID = v.State.TeamID
 	view.State.rotaID = v.State.rotaID
 
-	p, err := view.BuildProps(ctx)
+	p, err := view.BuildProps(ctx, tx)
 	if err != nil {
 		l.Error("failed to build props", zap.Error(err))
 		return nil, errors.New("failed to build add rota props")

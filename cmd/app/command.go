@@ -3,6 +3,9 @@ package main
 import (
 	"net"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rotabot-io/rotabot/slack"
+
 	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
 	"github.com/urfave/cli/v2"
@@ -77,7 +80,7 @@ func commandAction() cli.ActionFunc {
 			return err
 		}
 
-		queries, err := provideQueries(c.Context, dbUrl)
+		pool, err := pgxpool.New(c.Context, dbUrl)
 		if err != nil {
 			logger.Error("failed to connect to database", zap.Error(err))
 			return err
@@ -101,7 +104,7 @@ func commandAction() cli.ActionFunc {
 			MetricsComponent: "metrics",
 
 			SlackSigningSecret: c.String("slack.signing_secret"),
-			SlackService:       provideSlackService(c.Context, queries),
+			SlackService:       slack.New(pool),
 
 			HttpListener:    httpListener,
 			MetricsListener: metricListener,

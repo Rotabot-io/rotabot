@@ -19,8 +19,8 @@ var _ = Describe("SaveRota", func() {
 	var (
 		ctx     context.Context
 		sc      *mock_slackclient.MockSlackClient
-		queries *db.Queries
 		addRota *SaveRota
+		tx      pgx.Tx
 
 		channelID string
 		teamID    string
@@ -47,15 +47,16 @@ var _ = Describe("SaveRota", func() {
 		conn, err := pgx.Connect(ctx, container.ConnectionString())
 		Expect(err).ToNot(HaveOccurred())
 
-		queries = db.New(conn)
+		tx, err = conn.Begin(ctx)
+		Expect(err).ToNot(HaveOccurred())
 
 		DeferCleanup(func() {
+			err := tx.Rollback(ctx)
+			Expect(err).ToNot(HaveOccurred())
 			conn.Close(ctx)
 		})
 
-		addRota = &SaveRota{
-			Queries: queries,
-		}
+		addRota = &SaveRota{}
 	})
 
 	Describe("Callback", func() {
@@ -93,7 +94,7 @@ var _ = Describe("SaveRota", func() {
 					schedulingType: db.RSRandom,
 				}
 
-				p, err := addRota.BuildProps(ctx)
+				p, err := addRota.BuildProps(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
 
@@ -120,7 +121,7 @@ var _ = Describe("SaveRota", func() {
 
 		When("Rota does exist", func() {
 			BeforeEach(func() {
-				id, err := queries.SaveRota(ctx, db.SaveRotaParams{
+				id, err := db.New(tx).SaveRota(ctx, db.SaveRotaParams{
 					Name:      "Test Rota",
 					TeamID:    teamID,
 					ChannelID: channelID,
@@ -139,7 +140,7 @@ var _ = Describe("SaveRota", func() {
 				}
 			})
 			It("builds the props with the values from the rota", func() {
-				p, err := addRota.BuildProps(ctx)
+				p, err := addRota.BuildProps(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
 
@@ -168,7 +169,7 @@ var _ = Describe("SaveRota", func() {
 
 	Describe("OnAction", func() {
 		It("returns without doing anything", func() {
-			res, err := addRota.OnAction(ctx)
+			res, err := addRota.OnAction(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedRes := &gen.ActionResponse{}
@@ -178,7 +179,7 @@ var _ = Describe("SaveRota", func() {
 
 	Describe("OnClose", func() {
 		It("returns without doing anything", func() {
-			res, err := addRota.OnClose(ctx)
+			res, err := addRota.OnClose(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedRes := &gen.ActionResponse{}
@@ -189,7 +190,7 @@ var _ = Describe("SaveRota", func() {
 	Describe("OnSubmit", func() {
 		When("the user creats a rota that already exists", func() {
 			It("returns an error", func() {
-				_, err := queries.SaveRota(ctx, db.SaveRotaParams{
+				_, err := db.New(tx).SaveRota(ctx, db.SaveRotaParams{
 					Name:      "test",
 					TeamID:    teamID,
 					ChannelID: channelID,
@@ -205,7 +206,7 @@ var _ = Describe("SaveRota", func() {
 					schedulingType: db.RSCreated,
 				}
 
-				res, err := addRota.OnSubmit(ctx)
+				res, err := addRota.OnSubmit(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(res).ToNot(BeNil())
 
@@ -235,7 +236,7 @@ var _ = Describe("SaveRota", func() {
 					UpdateViewContext(ctx, gomock.Any(), "E123", "", "PV123").
 					Return(nil, nil).Times(1)
 
-				res, err := addRota.OnSubmit(ctx)
+				res, err := addRota.OnSubmit(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(res).ToNot(BeNil())
 
@@ -255,7 +256,7 @@ var _ = Describe("SaveRota", func() {
 		})
 
 		It("calls slack to open modal", func() {
-			p, err := addRota.BuildProps(ctx)
+			p, err := addRota.BuildProps(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
 			props := p.(*SaveRotaProps)
