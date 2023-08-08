@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        go: ['stable']
+        go: ['1.20', '1.21']
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -25,6 +25,7 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
           check-latest: true
+      - run: go version
       - name: Go Format
         run: gofmt -s -w . && git diff --exit-code
       - name: Go Tidy
