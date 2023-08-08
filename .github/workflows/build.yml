@@ -53,7 +53,19 @@ jobs:
       - name: Go Build
         run: make build
       - name: Go Test
-        run: make test
+        run: |
+          go run github.com/onsi/ginkgo/v2/ginkgo \
+              -r \
+              -randomize-all \
+              -randomize-suites \
+              -race \
+              -trace \
+              -procs=2 \
+              -poll-progress-after=10s \
+              -poll-progress-interval=10s \
+              --cover \
+              --coverprofile=cover.profile \
+              --junit-report=report.xml
       - name: Upload Coverage
         uses: codecov/codecov-action@v3
         continue-on-error: true
