@@ -16,7 +16,35 @@ var _ = Describe("Resolver", func() {
 		ctx = context.Background()
 	})
 
+	It("returns an unknown callback error", func() {
+		params := ResolverParams{
+			Action: slack.InteractionCallback{
+				View: slack.View{
+					CallbackID: "unknown_callback_id",
+				},
+			},
+		}
+
+		_, err := Resolve(ctx, params)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("unknown_callback_id"))
+	})
+
 	Describe("Home", func() {
+		It("returns an error when Private metadata is not a valid json", func() {
+			params := ResolverParams{
+				Action: slack.InteractionCallback{
+					View: slack.View{
+						CallbackID:      string(VTHome),
+						PrivateMetadata: "not_json",
+					},
+				},
+			}
+
+			_, err := Resolve(ctx, params)
+			Expect(err).To(HaveOccurred())
+		})
+
 		It("resolves a home view without actions", func() {
 			params := ResolverParams{
 				Action: slack.InteractionCallback{
