@@ -13,19 +13,20 @@ import (
 var _ = Describe("Migration", func() {
 	var ctx context.Context
 	var connString string
-	var q *Queries
+	var conn *pgx.Conn
+	var container *internal.PostgresContainer
 
 	BeforeEach(func() {
 		ctx = context.Background()
 
-		container, err := internal.RunContainer(ctx)
+		var err error
+		container, err = internal.RunContainer(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
 		connString = container.ConnectionString()
 
-		conn, err := pgx.Connect(ctx, connString)
+		conn, err = pgx.Connect(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
-		q = New(conn)
 
 		DeferCleanup(func() {
 			_ = container.Terminate(ctx)
@@ -34,7 +35,7 @@ var _ = Describe("Migration", func() {
 	})
 
 	It("Queries should fail if table is not ready", func() {
-		rotas, err := q.ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: "foo", TeamID: "bar"})
+		rotas, err := New(conn).ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: "foo", TeamID: "bar"})
 
 		Expect(err.Error()).To(Equal("ERROR: relation \"rotas\" does not exist (SQLSTATE 42P01)"))
 		Expect(len(rotas)).To(Equal(0))
@@ -44,9 +45,17 @@ var _ = Describe("Migration", func() {
 		err := Migrate(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		rotas, err := q.ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: "foo", TeamID: "bar"})
+		rotas, err := New(conn).ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: "foo", TeamID: "bar"})
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(rotas)).To(Equal(0))
+	})
+
+	It("When we fail to migrate we fail", func() {
+		err := container.Terminate(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = Migrate(ctx, connString)
+		Expect(err).To(HaveOccurred())
 	})
 })

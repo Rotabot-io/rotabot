@@ -57,3 +57,7 @@ func RunContainer(ctx context.Context) (*PostgresContainer, error) {
 
 	return &PostgresContainer{Container: container, dbName: dbName, password: password, user: user, dsn: connStr}, nil
 }
+
+func (c *PostgresContainer) Terminate(ctx context.Context) error {
+	return c.Container.Terminate(ctx)
+}

@@ -1,4 +1,4 @@
-package core
+package db
 
 import (
 	"context"
@@ -6,34 +6,36 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
 	"go.uber.org/zap"
 )
 
-var ErrAlreadyExists = errors.New("resource already exist")
+var (
+	ErrAlreadyExists = errors.New("resource already exist")
+	ErrNotFound      = errors.New("no rows in result set")
+)
 
 type CreateOrUpdateRotaParams struct {
 	RotaID    string
 	TeamID    string
 	ChannelID string
 	Name      string
-	Metadata  db.RotaMetadata
+	Metadata  RotaMetadata
 }
 
 func CreateOrUpdateRota(ctx context.Context, tx pgx.Tx, p CreateOrUpdateRotaParams) (string, error) {
 	l := zapctx.Logger(ctx)
-	client := db.New(tx)
+	client := New(tx)
 	var rotaId string
 	var err error
 	if p.RotaID != "" {
-		rotaId, err = client.UpdateRota(ctx, db.UpdateRotaParams{
+		rotaId, err = client.UpdateRota(ctx, UpdateRotaParams{
 			ID:       p.RotaID,
 			Name:     p.Name,
 			Metadata: p.Metadata,
 		})
 	} else {
-		rotaId, err = client.SaveRota(ctx, db.SaveRotaParams{
+		rotaId, err = client.SaveRota(ctx, SaveRotaParams{
 			Name:      p.Name,
 			TeamID:    p.TeamID,
 			ChannelID: p.ChannelID,

@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/rotabot-io/rotabot/lib/core"
-
 	"github.com/getsentry/sentry-go"
+	"github.com/jackc/pgx/v5"
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
@@ -129,7 +127,7 @@ func (v SaveRota) OnClose(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, 
 
 func (v SaveRota) OnSubmit(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	id, err := core.CreateOrUpdateRota(ctx, tx, core.CreateOrUpdateRotaParams{
+	id, err := db.CreateOrUpdateRota(ctx, tx, db.CreateOrUpdateRotaParams{
 		RotaID:    v.State.rotaID,
 		TeamID:    v.State.TeamID,
 		ChannelID: v.State.ChannelID,
@@ -137,7 +135,7 @@ func (v SaveRota) OnSubmit(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse,
 		Metadata:  db.RotaMetadata{Frequency: v.State.frequency, SchedulingType: v.State.schedulingType},
 	})
 	if err != nil {
-		if errors.Is(err, core.ErrAlreadyExists) {
+		if errors.Is(err, db.ErrAlreadyExists) {
 			response := string(slack.RAErrors)
 			return &gen.ActionResponse{
 				ResponseAction: &response,
