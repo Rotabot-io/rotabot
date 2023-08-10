@@ -19,6 +19,11 @@ type ResolverParams struct {
 	Action slack.InteractionCallback
 }
 
+var (
+	ErrUnknownCallbackID = errors.New("unknown_callback_id")
+	ErrInvalidMetadata   = errors.New("invalid_private_metadata")
+)
+
 func Resolve(ctx context.Context, p ResolverParams) (View, error) {
 	switch p.Action.View.CallbackID {
 	case string(VTHome):
@@ -28,14 +33,15 @@ func Resolve(ctx context.Context, p ResolverParams) (View, error) {
 	default:
 		zapctx.Logger(ctx).Warn("unknown_callback_id", zap.String("callback_id", p.Action.View.CallbackID))
 		sentry.CaptureMessage(fmt.Sprintf("unknown_callback_id: %s", p.Action.View.CallbackID))
-		return nil, errors.New("unknown_callback_id")
+		return nil, ErrUnknownCallbackID
 	}
 }
 
 func resolveHomeView(ctx context.Context, p ResolverParams) (View, error) {
-	m, err := unMarshallMetadata(ctx, p.Action.View.PrivateMetadata)
+	m, err := unMarshallMetadata(p.Action.View.PrivateMetadata)
 	if err != nil {
-		return nil, err
+		zapctx.Logger(ctx).Error("unmarshall_metadata", zap.Error(err))
+		return nil, ErrInvalidMetadata
 	}
 
 	view := &Home{}
@@ -58,9 +64,10 @@ func resolveHomeView(ctx context.Context, p ResolverParams) (View, error) {
 }
 
 func resolveSaveRota(ctx context.Context, p ResolverParams) (View, error) {
-	m, err := unMarshallMetadata(ctx, p.Action.View.PrivateMetadata)
+	m, err := unMarshallMetadata(p.Action.View.PrivateMetadata)
 	if err != nil {
-		return nil, err
+		zapctx.Logger(ctx).Error("unmarshall_metadata", zap.Error(err))
+		return nil, ErrInvalidMetadata
 	}
 
 	view := &SaveRota{}
@@ -82,12 +89,8 @@ func resolveSaveRota(ctx context.Context, p ResolverParams) (View, error) {
 	return view, nil
 }
 
-func unMarshallMetadata(ctx context.Context, metadata string) (Metadata, error) {
+func unMarshallMetadata(metadata string) (Metadata, error) {
 	var m Metadata
 	err := json.Unmarshal([]byte(metadata), &m)
-	if err != nil {
-		zapctx.Logger(ctx).Error("unmarshall_metadata", zap.Error(err))
-		return m, err
-	}
-	return m, nil
+	return m, err
 }

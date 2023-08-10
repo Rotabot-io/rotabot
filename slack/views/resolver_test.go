@@ -27,7 +27,7 @@ var _ = Describe("Resolver", func() {
 
 		_, err := Resolve(ctx, params)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("unknown_callback_id"))
+		Expect(err).To(MatchError(ErrUnknownCallbackID))
 	})
 
 	Describe("Home", func() {
@@ -43,6 +43,7 @@ var _ = Describe("Resolver", func() {
 
 			_, err := Resolve(ctx, params)
 			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ErrInvalidMetadata))
 		})
 
 		It("resolves a home view without actions", func() {
@@ -130,6 +131,21 @@ var _ = Describe("Resolver", func() {
 		})
 	})
 	Describe("SaveRota", func() {
+		It("returns an error when Private metadata is not a valid json", func() {
+			params := ResolverParams{
+				Action: slack.InteractionCallback{
+					View: slack.View{
+						CallbackID:      string(VTSaveRota),
+						PrivateMetadata: "not_json",
+					},
+				},
+			}
+
+			_, err := Resolve(ctx, params)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ErrInvalidMetadata))
+		})
+
 		It("resolves a add rota view with default state", func() {
 			params := ResolverParams{
 				Action: slack.InteractionCallback{
