@@ -2,8 +2,6 @@ package views
 
 import (
 	"context"
-	"encoding/json"
-
 	"github.com/jackc/pgx/v5"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
@@ -19,19 +17,6 @@ const (
 type Metadata struct {
 	RotaID    string `json:"rota_id"`
 	ChannelID string `json:"channel_id"`
-}
-
-func (m Metadata) ToJson() (string, error) {
-	bytes, err := json.Marshal(m)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
-}
-
-func (m Metadata) FromJson(payload string) error {
-	bytes := []byte(payload)
-	return json.Unmarshal(bytes, &m)
 }
 
 type View interface {
