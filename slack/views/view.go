@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+
 	"github.com/jackc/pgx/v5"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
