@@ -16,7 +16,7 @@ require (
 	github.com/onsi/gomega v1.27.10
 	github.com/prometheus/client_golang v1.16.0
 	github.com/slack-go/slack v0.12.2
-	github.com/testcontainers/testcontainers-go v0.22.0
+	github.com/testcontainers/testcontainers-go v0.23.0
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/automaxprocs v1.5.3
 	go.uber.org/mock v0.2.0
