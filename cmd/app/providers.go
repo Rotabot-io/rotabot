@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/rotabot-io/rotabot/internal"
 	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/urfave/cli/v2"
 
@@ -61,11 +64,19 @@ func initMetrics(verb, path string) {
 
 func provideConnString(c *cli.Context) (string, error) {
 	if c.Bool("dev") {
-		container, err := internal.RunContainer(c.Context)
+		container, err := postgres.RunContainer(c.Context,
+			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+		)
 		if err != nil {
 			return "", err
 		}
-		return container.ConnectionString(), nil
+
+		dbUrl, err := container.ConnectionString(c.Context, "sslmode=disable")
+		if err != nil {
+			return "", err
+		}
+
+		return dbUrl, nil
 	}
 	if dsn := c.String("database.url"); dsn != "" {
 		return dsn, nil

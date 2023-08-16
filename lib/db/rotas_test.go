@@ -3,31 +3,37 @@ package db
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/rotabot-io/rotabot/internal"
 )
 
 var _ = Describe("Rotas", func() {
 	var ctx context.Context
-	var connString string
 	var q *Queries
 
 	BeforeEach(func() {
 		ctx = context.Background()
 
-		container, err := internal.RunContainer(ctx)
+		container, err := postgres.RunContainer(ctx,
+			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+		)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = Migrate(ctx, container.ConnectionString())
+		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		connString = container.ConnectionString()
+		err = Migrate(ctx, dbUrl)
+		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgx.Connect(ctx, connString)
+		conn, err := pgx.Connect(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
 		q = New(conn)
 
