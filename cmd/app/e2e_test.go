@@ -6,14 +6,18 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"time"
+
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/rotabot-io/rotabot/internal"
 	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/rotabot-io/rotabot/slack"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 var _ = Describe("E2E", func() {
@@ -33,13 +37,18 @@ var _ = Describe("E2E", func() {
 		metricListener, err := net.Listen("tcp", "127.0.0.1:0")
 		Expect(err).NotTo(HaveOccurred())
 
-		container, err := internal.RunContainer(ctx)
+		container, err := postgres.RunContainer(ctx,
+			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+		)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = db.Migrate(ctx, container.ConnectionString())
+		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgxpool.New(ctx, container.ConnectionString())
+		err = db.Migrate(ctx, dbUrl)
+		Expect(err).ToNot(HaveOccurred())
+
+		conn, err := pgxpool.New(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
 
 		DeferCleanup(func() {

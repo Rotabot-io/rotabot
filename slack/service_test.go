@@ -2,13 +2,17 @@ package slack
 
 import (
 	"context"
+	"time"
+
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/slack-go/slack"
 
-	"github.com/rotabot-io/rotabot/internal"
-
+	"github.com/jackc/pgx/v5"
 	"github.com/rotabot-io/rotabot/lib/db"
 
 	"github.com/slack-go/slack/slackevents"
@@ -30,20 +34,20 @@ var _ = Describe("Service", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		container, err := internal.RunContainer(ctx)
+
+		container, err := postgres.RunContainer(ctx,
+			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+		)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = db.Migrate(ctx, container.ConnectionString())
+		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgxpool.New(ctx, container.ConnectionString())
+		err = db.Migrate(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
 
-		DeferCleanup(func() {
-			conn.Close()
-		})
-
-		svc = New(conn)
+		conn, err := pgxpool.New(ctx, dbUrl)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	// Create a mock and assign it to the sc variable at the start of each test
