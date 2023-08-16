@@ -35,5 +35,14 @@ func Migrate(ctx context.Context, dsn string) error {
 		logger.Error("failing_to_migrate", zap.Error(err))
 		return err
 	}
+
+	version, _, err := migrator.Version()
+	if err != nil && errors.Is(err, migrate.ErrNilVersion) {
+		logger.Error("getting_migration_version", zap.Error(err))
+		return migrate.ErrNilVersion
+	}
+
+	logger.Info("migrations_applied", zap.Uint("version", version))
+
 	return nil
 }
