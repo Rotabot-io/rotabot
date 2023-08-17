@@ -18,13 +18,13 @@ var _ = Describe("Migration", func() {
 	var ctx context.Context
 	var connString string
 	var conn *pgx.Conn
-	var container *internal.PostgresContainer
+	var container *postgres.PostgresContainer
 
 	BeforeEach(func() {
 		var err error
 		ctx = context.Background()
 
-		container, err := postgres.RunContainer(ctx,
+		container, err = postgres.RunContainer(ctx,
 			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -37,7 +37,7 @@ var _ = Describe("Migration", func() {
 
 		DeferCleanup(func() {
 			_ = container.Terminate(ctx)
-			conn.Close(ctx)
+			_ = conn.Close(ctx)
 		})
 	})
 

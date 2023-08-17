@@ -12,7 +12,6 @@ import (
 
 	"github.com/slack-go/slack"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/rotabot-io/rotabot/lib/db"
 
 	"github.com/slack-go/slack/slackevents"
@@ -48,6 +47,8 @@ var _ = Describe("Service", func() {
 
 		conn, err := pgxpool.New(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
+
+		svc = New(conn)
 	})
 
 	// Create a mock and assign it to the sc variable at the start of each test

@@ -10,10 +10,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/getsentry/sentry-go"
-	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/urfave/cli/v2"
 
 	"github.com/prometheus/client_golang/prometheus"
