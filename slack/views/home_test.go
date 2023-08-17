@@ -20,45 +20,46 @@ import (
 
 var _ = Describe("Home", func() {
 	var (
-		ctx  context.Context
-		sc   *mock_slackclient.MockSlackClient
-		home *Home
-		tx   pgx.Tx
+		ctx        context.Context
+		sc         *mock_slackclient.MockSlackClient
+		home       *Home
+		connString string
+		tx         pgx.Tx
+		conn       *pgx.Conn
+		container  *postgres.PostgresContainer
 	)
 
 	BeforeEach(func() {
+		var err error
 		ctx = context.Background()
-	})
 
-	// Create a mock and assign it to the sc variable at the start of each test
-	slackclient.MockSlackClient(&ctx, &sc, nil)
-
-	BeforeEach(func() {
-		container, err := postgres.RunContainer(ctx,
+		container, err = postgres.RunContainer(ctx,
 			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
+		connString, err = container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		err = db.Migrate(ctx, dbUrl)
+		err = db.Migrate(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgx.Connect(ctx, dbUrl)
+		conn, err = pgx.Connect(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
+
+		home = &Home{}
 
 		tx, err = conn.Begin(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
 		DeferCleanup(func() {
-			err := tx.Rollback(ctx)
-			Expect(err).ToNot(HaveOccurred())
-			conn.Close(ctx)
+			_ = container.Terminate(ctx)
+			_ = conn.Close(ctx)
 		})
-
-		home = &Home{}
 	})
+
+	// Create a mock and assign it to the sc variable at the start of each test
+	slackclient.MockSlackClient(&ctx, &sc, nil)
 
 	Describe("Callback", func() {
 		It("resolves a home view without actions", func() {

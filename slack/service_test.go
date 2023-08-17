@@ -4,11 +4,14 @@ import (
 	"context"
 	"time"
 
+
+	"github.com/rotabot-io/rotabot/slack/slackclient"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/slack-go/slack"
 
@@ -19,36 +22,44 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gen "github.com/rotabot-io/rotabot/gen/slack"
-	"github.com/rotabot-io/rotabot/slack/slackclient"
 	"github.com/rotabot-io/rotabot/slack/slackclient/mock_slackclient"
 	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("Service", func() {
 	var (
-		ctx context.Context
-		sc  *mock_slackclient.MockSlackClient
-		svc gen.Service
+		ctx        context.Context
+		sc         *mock_slackclient.MockSlackClient
+		svc        gen.Service
+		connString string
+		conn       *pgxpool.Pool
+		container  *postgres.PostgresContainer
 	)
 
 	BeforeEach(func() {
+		var err error
 		ctx = context.Background()
 
-		container, err := postgres.RunContainer(ctx,
+		container, err = postgres.RunContainer(ctx,
 			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
+		connString, err = container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		err = db.Migrate(ctx, dbUrl)
+		err = db.Migrate(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgxpool.New(ctx, dbUrl)
+		conn, err = pgxpool.New(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
 		svc = New(conn)
+
+		DeferCleanup(func() {
+			_ = container.Terminate(ctx)
+			conn.Close()
+		})
 	})
 
 	// Create a mock and assign it to the sc variable at the start of each test

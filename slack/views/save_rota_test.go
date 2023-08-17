@@ -4,6 +4,9 @@ import (
 	"context"
 	"time"
 
+
+	"github.com/rotabot-io/rotabot/slack/slackclient"
+
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -13,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	gen "github.com/rotabot-io/rotabot/gen/slack"
 	"github.com/rotabot-io/rotabot/lib/db"
-	"github.com/rotabot-io/rotabot/slack/slackclient"
 	"github.com/rotabot-io/rotabot/slack/slackclient/mock_slackclient"
 	"github.com/slack-go/slack"
 	"go.uber.org/mock/gomock"
@@ -21,10 +23,13 @@ import (
 
 var _ = Describe("SaveRota", func() {
 	var (
-		ctx     context.Context
-		sc      *mock_slackclient.MockSlackClient
-		addRota *SaveRota
-		tx      pgx.Tx
+		ctx        context.Context
+		sc         *mock_slackclient.MockSlackClient
+		addRota    *SaveRota
+		connString string
+		tx         pgx.Tx
+		conn       *pgx.Conn
+		container  *postgres.PostgresContainer
 
 		channelID string
 		teamID    string
@@ -32,41 +37,39 @@ var _ = Describe("SaveRota", func() {
 	)
 
 	BeforeEach(func() {
+		var err error
 		ctx = context.Background()
-		channelID = "CH123"
-		teamID = "TM123"
-		triggerID = "TR123"
-	})
 
-	// Create a mock and assign it to the sc variable at the start of each test
-	slackclient.MockSlackClient(&ctx, &sc, nil)
-
-	BeforeEach(func() {
-		container, err := postgres.RunContainer(ctx,
+		container, err = postgres.RunContainer(ctx,
 			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
+		connString, err = container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		err = db.Migrate(ctx, dbUrl)
+		err = db.Migrate(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgx.Connect(ctx, dbUrl)
+		conn, err = pgx.Connect(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
+
+		addRota = &SaveRota{}
+		channelID = "CH123"
+		teamID = "TM123"
+		triggerID = "TR123"
 
 		tx, err = conn.Begin(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
 		DeferCleanup(func() {
-			err := tx.Rollback(ctx)
-			Expect(err).ToNot(HaveOccurred())
-			conn.Close(ctx)
+			_ = container.Terminate(ctx)
+			_ = conn.Close(ctx)
 		})
-
-		addRota = &SaveRota{}
 	})
+
+	// Create a mock and assign it to the sc variable at the start of each test
+	slackclient.MockSlackClient(&ctx, &sc, nil)
 
 	Describe("Callback", func() {
 		It("resolves a home view without actions", func() {
