@@ -54,6 +54,7 @@ lint:
 
 .PHONY: lint-fix
 lint-fix:
+	gofmt -s -w .
 	$(LINT_COMMAND) --fix
 
 .PHONY: install
