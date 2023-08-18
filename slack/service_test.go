@@ -3,8 +3,6 @@ package slack
 import (
 	"context"
 	"time"
-
-
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
 	"github.com/jackc/pgx/v5/pgxpool"

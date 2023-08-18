@@ -3,8 +3,6 @@ package views
 import (
 	"context"
 	"time"
-
-
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
 	"github.com/testcontainers/testcontainers-go"
