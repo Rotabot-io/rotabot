@@ -95,9 +95,6 @@ func provideSentry(ctx context.Context, c *cli.Context) error {
 			return err
 		}
 		logger.Debug("connected to sentry")
-
-		// Flush buffered events before the program terminates.
-		defer sentry.Flush(2 * time.Second)
 	}
 	return nil
 }

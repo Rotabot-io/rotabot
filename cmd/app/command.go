@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/getsentry/sentry-go"
 	"net"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rotabot-io/rotabot/slack"
@@ -63,11 +65,14 @@ var rotabotCommand = &cli.Command{
 func commandAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		logger := zapctx.Logger(c.Context)
+		defer logger.Sync()
+
 		err := provideSentry(c.Context, c)
 		if err != nil {
 			logger.Error("unable to setup sentry", zap.Error(err))
 			return err
 		}
+		defer sentry.Flush(2 * time.Second)
 
 		dbUrl, err := provideConnString(c)
 		if err != nil {
@@ -85,18 +90,21 @@ func commandAction() cli.ActionFunc {
 			logger.Error("failed to connect to database", zap.Error(err))
 			return err
 		}
+		defer pool.Close()
 
 		httpListener, err := net.Listen("tcp", c.String("server.addr"))
 		if err != nil {
 			logger.Error("failed to start http listener", zap.Error(err))
 			return err
 		}
+		defer httpListener.Close()
 
 		metricListener, err := net.Listen("tcp", c.String("metrics.addr"))
 		if err != nil {
 			logger.Error("failed to start metrics listener", zap.Error(err))
 			return err
 		}
+		defer metricListener.Close()
 
 		params := &ServerParams{
 			BaseContext:      c.Context,
