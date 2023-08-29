@@ -63,7 +63,7 @@ func (v Home) BuildProps(ctx context.Context, tx pgx.Tx) (interface{}, error) {
 	rotas, err := db.New(tx).ListRotasByChannel(ctx, db.ListRotasByChannelParams{ChannelID: v.State.ChannelID, TeamID: v.State.TeamID})
 	if err != nil {
 		l.Error("failed to list rotas", zap.Error(err))
-		return nil, goaerrors.NewInternalError()
+		return nil, errors.New("failed to list rotas")
 	}
 
 	blocks := []slack.Block{

@@ -84,6 +84,13 @@ var _ = Describe("Home", func() {
 			}
 		})
 
+		It("returns an error when unable to list rotas", func() {
+			tx.Rollback(ctx)
+			_, err := home.BuildProps(ctx, tx)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to list rotas"))
+		})
+
 		It("returns props when no rota exists", func() {
 			p, err := home.BuildProps(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
@@ -202,6 +209,17 @@ var _ = Describe("Home", func() {
 
 			_, err = home.OnAction(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns error when it's unable to build props", func() {
+			home.State.action = HASaveRota
+			home.State.rotaID = "123"
+
+			tx.Rollback(ctx)
+
+			_, err := home.OnAction(ctx, tx)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to build add rota props"))
 		})
 	})
 
