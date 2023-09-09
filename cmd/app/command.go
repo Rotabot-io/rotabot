@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/getsentry/sentry-go"
 	"net"
 	"time"
+
+	"github.com/getsentry/sentry-go"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rotabot-io/rotabot/slack"
@@ -65,7 +66,9 @@ var rotabotCommand = &cli.Command{
 func commandAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		logger := zapctx.Logger(c.Context)
-		defer logger.Sync()
+		defer func(logger *zap.Logger) {
+			_ = logger.Sync()
+		}(logger)
 
 		err := provideSentry(c.Context, c)
 		if err != nil {
