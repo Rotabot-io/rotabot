@@ -3,7 +3,7 @@ module github.com/rotabot-io/rotabot
 go 1.20
 
 require (
-	github.com/KimMachineGun/automemlimit v0.2.6
+	github.com/KimMachineGun/automemlimit v0.3.0
 	github.com/ajg/form v1.5.1
 	github.com/getsentry/sentry-go v0.23.0
 	github.com/golang-migrate/migrate/v4 v4.16.2
