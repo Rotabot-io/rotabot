@@ -121,24 +121,35 @@ func (s svc) MessageActions(ctx context.Context, event *gen.Action) (*gen.Action
 	}
 	defer func(tx pgx.Tx, ctx context.Context) {
 		err := tx.Rollback(ctx)
-		if err != nil {
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
 			l.Error("failed to rollback transaction", zap.Error(err))
 		}
 	}(tx, ctx)
 	// We only use views for now so these are the only events that make sense for us to handle.
+	var res *gen.ActionResponse
 	switch action.Type { // nolint:exhaustive
 	case slack.InteractionTypeBlockActions:
-		return view.OnAction(ctx, tx)
+		res, err = view.OnAction(ctx, tx)
 	case slack.InteractionTypeViewSubmission:
-		return view.OnSubmit(ctx, tx)
+		res, err = view.OnSubmit(ctx, tx)
 	case slack.InteractionTypeViewClosed:
-		return view.OnClose(ctx, tx)
+		res, err = view.OnClose(ctx, tx)
 	default:
 		sentry.CaptureMessage(fmt.Sprintf("unknown_action_type: %s", action.Type))
 		l.Warn("unknown_action_type", zap.String("type", string(action.Type)))
 		response := string(slack.RAClear)
 		return &gen.ActionResponse{ResponseAction: &response}, nil
 	}
+	if err != nil {
+		l.Error("failed to handle action", zap.Error(err))
+		return nil, goaerrors.NewInternalError()
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		l.Error("failed to commit transaction", zap.Error(err))
+		return nil, goaerrors.NewInternalError()
+	}
+	return res, nil
 }
 
 func marshallCallback(ctx context.Context, event *gen.Action) (slack.InteractionCallback, error) {
