@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/rotabot-io/rotabot/slack/slackclient"
+
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -13,7 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	gen "github.com/rotabot-io/rotabot/gen/slack"
 	"github.com/rotabot-io/rotabot/lib/db"
-	"github.com/rotabot-io/rotabot/slack/slackclient"
 	"github.com/rotabot-io/rotabot/slack/slackclient/mock_slackclient"
 	"github.com/slack-go/slack"
 	"go.uber.org/mock/gomock"
@@ -21,10 +22,13 @@ import (
 
 var _ = Describe("SaveRota", func() {
 	var (
-		ctx     context.Context
-		sc      *mock_slackclient.MockSlackClient
-		queries *db.Queries
-		addRota *SaveRota
+		ctx        context.Context
+		sc         *mock_slackclient.MockSlackClient
+		addRota    *SaveRota
+		connString string
+		tx         pgx.Tx
+		conn       *pgx.Conn
+		container  *postgres.PostgresContainer
 
 		channelID string
 		teamID    string
@@ -32,40 +36,39 @@ var _ = Describe("SaveRota", func() {
 	)
 
 	BeforeEach(func() {
+		var err error
 		ctx = context.Background()
-		channelID = "CH123"
-		teamID = "TM123"
-		triggerID = "TR123"
-	})
 
-	// Create a mock and assign it to the sc variable at the start of each test
-	slackclient.MockSlackClient(&ctx, &sc, nil)
-
-	BeforeEach(func() {
-		container, err := postgres.RunContainer(ctx,
+		container, err = postgres.RunContainer(ctx,
 			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
+		connString, err = container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		err = db.Migrate(ctx, dbUrl)
+		err = db.Migrate(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgx.Connect(ctx, dbUrl)
+		conn, err = pgx.Connect(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		queries = db.New(conn)
+		addRota = &SaveRota{}
+		channelID = "CH123"
+		teamID = "TM123"
+		triggerID = "TR123"
+
+		tx, err = conn.Begin(ctx)
+		Expect(err).ToNot(HaveOccurred())
 
 		DeferCleanup(func() {
-			conn.Close(ctx)
+			_ = container.Terminate(ctx)
+			_ = conn.Close(ctx)
 		})
-
-		addRota = &SaveRota{
-			Queries: queries,
-		}
 	})
+
+	// Create a mock and assign it to the sc variable at the start of each test
+	slackclient.MockSlackClient(&ctx, &sc, nil)
 
 	Describe("Callback", func() {
 		It("resolves a home view without actions", func() {
@@ -102,7 +105,7 @@ var _ = Describe("SaveRota", func() {
 					schedulingType: db.RSRandom,
 				}
 
-				p, err := addRota.BuildProps(ctx)
+				p, err := addRota.BuildProps(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
 
@@ -129,7 +132,7 @@ var _ = Describe("SaveRota", func() {
 
 		When("Rota does exist", func() {
 			BeforeEach(func() {
-				id, err := queries.SaveRota(ctx, db.SaveRotaParams{
+				id, err := db.New(tx).SaveRota(ctx, db.SaveRotaParams{
 					Name:      "Test Rota",
 					TeamID:    teamID,
 					ChannelID: channelID,
@@ -148,7 +151,7 @@ var _ = Describe("SaveRota", func() {
 				}
 			})
 			It("builds the props with the values from the rota", func() {
-				p, err := addRota.BuildProps(ctx)
+				p, err := addRota.BuildProps(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
 
@@ -177,7 +180,7 @@ var _ = Describe("SaveRota", func() {
 
 	Describe("OnAction", func() {
 		It("returns without doing anything", func() {
-			res, err := addRota.OnAction(ctx)
+			res, err := addRota.OnAction(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedRes := &gen.ActionResponse{}
@@ -187,7 +190,7 @@ var _ = Describe("SaveRota", func() {
 
 	Describe("OnClose", func() {
 		It("returns without doing anything", func() {
-			res, err := addRota.OnClose(ctx)
+			res, err := addRota.OnClose(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedRes := &gen.ActionResponse{}
@@ -198,7 +201,7 @@ var _ = Describe("SaveRota", func() {
 	Describe("OnSubmit", func() {
 		When("the user creats a rota that already exists", func() {
 			It("returns an error", func() {
-				_, err := queries.SaveRota(ctx, db.SaveRotaParams{
+				_, err := db.New(tx).SaveRota(ctx, db.SaveRotaParams{
 					Name:      "test",
 					TeamID:    teamID,
 					ChannelID: channelID,
@@ -214,7 +217,7 @@ var _ = Describe("SaveRota", func() {
 					schedulingType: db.RSCreated,
 				}
 
-				res, err := addRota.OnSubmit(ctx)
+				res, err := addRota.OnSubmit(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(res).ToNot(BeNil())
 
@@ -244,7 +247,7 @@ var _ = Describe("SaveRota", func() {
 					UpdateViewContext(ctx, gomock.Any(), "E123", "", "PV123").
 					Return(nil, nil).Times(1)
 
-				res, err := addRota.OnSubmit(ctx)
+				res, err := addRota.OnSubmit(ctx, tx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(res).ToNot(BeNil())
 
@@ -264,7 +267,7 @@ var _ = Describe("SaveRota", func() {
 		})
 
 		It("calls slack to open modal", func() {
-			p, err := addRota.BuildProps(ctx)
+			p, err := addRota.BuildProps(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(p).To(BeAssignableToTypeOf(&SaveRotaProps{}))
 			props := p.(*SaveRotaProps)

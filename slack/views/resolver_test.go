@@ -11,17 +11,43 @@ import (
 
 var _ = Describe("Resolver", func() {
 	var ctx context.Context
-	var queries *db.Queries
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		queries = &db.Queries{}
+	})
+
+	It("returns an unknown callback error", func() {
+		params := ResolverParams{
+			Action: slack.InteractionCallback{
+				View: slack.View{
+					CallbackID: "unknown_callback_id",
+				},
+			},
+		}
+
+		_, err := Resolve(ctx, params)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ErrUnknownCallbackID))
 	})
 
 	Describe("Home", func() {
+		It("returns an error when Private metadata is not a valid json", func() {
+			params := ResolverParams{
+				Action: slack.InteractionCallback{
+					View: slack.View{
+						CallbackID:      string(VTHome),
+						PrivateMetadata: "not_json",
+					},
+				},
+			}
+
+			_, err := Resolve(ctx, params)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ErrInvalidMetadata))
+		})
+
 		It("resolves a home view without actions", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						CallbackID:      string(VTHome),
@@ -48,7 +74,6 @@ var _ = Describe("Resolver", func() {
 
 		It("resolves save view action without rota_id to trigger a create", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						PrivateMetadata: "{\"rota_id\":\"ROTA_ID\",\"channel_id\":\"C123\"}",
@@ -76,7 +101,6 @@ var _ = Describe("Resolver", func() {
 
 		It("resolves save view action with the rota_id to trigger an update", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						PrivateMetadata: "{\"rota_id\":\"ROTA_ID\",\"channel_id\":\"C123\"}",
@@ -107,9 +131,23 @@ var _ = Describe("Resolver", func() {
 		})
 	})
 	Describe("SaveRota", func() {
+		It("returns an error when Private metadata is not a valid json", func() {
+			params := ResolverParams{
+				Action: slack.InteractionCallback{
+					View: slack.View{
+						CallbackID:      string(VTSaveRota),
+						PrivateMetadata: "not_json",
+					},
+				},
+			}
+
+			_, err := Resolve(ctx, params)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ErrInvalidMetadata))
+		})
+
 		It("resolves a add rota view with default state", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						CallbackID:      string(VTSaveRota),
@@ -145,7 +183,6 @@ var _ = Describe("Resolver", func() {
 
 		It("resolves a add rota view with the state given on the action", func() {
 			params := ResolverParams{
-				Queries: queries,
 				Action: slack.InteractionCallback{
 					View: slack.View{
 						CallbackID:      string(VTSaveRota),

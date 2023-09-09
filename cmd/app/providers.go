@@ -10,10 +10,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/getsentry/sentry-go"
-	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/urfave/cli/v2"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -84,20 +81,6 @@ func provideConnString(c *cli.Context) (string, error) {
 	return "", errors.New("provideConnString not found")
 }
 
-func provideQueries(ctx context.Context, dsn string) (*db.Queries, error) {
-	logger := zapctx.Logger(ctx)
-	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		logger.Error("unable to connect to database", zap.Error(err))
-		return nil, err
-	}
-	return db.New(pool), nil
-}
-
-func provideSlackService(_ context.Context, q *db.Queries) genSlack.Service {
-	return slack.New(q)
-}
-
 func provideSentry(ctx context.Context, c *cli.Context) error {
 	if c.Bool("sentry") {
 		logger := zapctx.Logger(ctx)
@@ -112,9 +95,6 @@ func provideSentry(ctx context.Context, c *cli.Context) error {
 			return err
 		}
 		logger.Debug("connected to sentry")
-
-		// Flush buffered events before the program terminates.
-		defer sentry.Flush(2 * time.Second)
 	}
 	return nil
 }

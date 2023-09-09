@@ -11,7 +11,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rotabot-io/rotabot/lib/db"
@@ -47,14 +48,14 @@ var _ = Describe("E2E", func() {
 		err = db.Migrate(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgx.Connect(ctx, dbUrl)
+		conn, err := pgxpool.New(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
 
 		DeferCleanup(func() {
 			cancel()
 			httpListener.Close()
 			metricListener.Close()
-			conn.Close(ctx)
+			conn.Close()
 		})
 
 		server = NewServer(&ServerParams{
@@ -63,7 +64,7 @@ var _ = Describe("E2E", func() {
 			MetricsComponent: "metrics",
 
 			SlackSigningSecret: "TEST",
-			SlackService:       slack.New(db.New(conn)),
+			SlackService:       slack.New(conn),
 
 			HttpListener:    httpListener,
 			MetricsListener: metricListener,

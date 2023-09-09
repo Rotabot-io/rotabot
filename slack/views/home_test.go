@@ -20,44 +20,46 @@ import (
 
 var _ = Describe("Home", func() {
 	var (
-		ctx     context.Context
-		sc      *mock_slackclient.MockSlackClient
-		queries *db.Queries
-		home    *Home
+		ctx        context.Context
+		sc         *mock_slackclient.MockSlackClient
+		home       *Home
+		connString string
+		tx         pgx.Tx
+		conn       *pgx.Conn
+		container  *postgres.PostgresContainer
 	)
 
 	BeforeEach(func() {
+		var err error
 		ctx = context.Background()
-	})
 
-	// Create a mock and assign it to the sc variable at the start of each test
-	slackclient.MockSlackClient(&ctx, &sc, nil)
-
-	BeforeEach(func() {
-		container, err := postgres.RunContainer(ctx,
+		container, err = postgres.RunContainer(ctx,
 			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
+		connString, err = container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
-		err = db.Migrate(ctx, dbUrl)
+		err = db.Migrate(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		conn, err := pgx.Connect(ctx, dbUrl)
+		conn, err = pgx.Connect(ctx, connString)
 		Expect(err).ToNot(HaveOccurred())
 
-		queries = db.New(conn)
+		home = &Home{}
+
+		tx, err = conn.Begin(ctx)
+		Expect(err).ToNot(HaveOccurred())
 
 		DeferCleanup(func() {
-			conn.Close(ctx)
+			_ = container.Terminate(ctx)
+			_ = conn.Close(ctx)
 		})
-
-		home = &Home{
-			Queries: queries,
-		}
 	})
+
+	// Create a mock and assign it to the sc variable at the start of each test
+	slackclient.MockSlackClient(&ctx, &sc, nil)
 
 	Describe("Callback", func() {
 		It("resolves a home view without actions", func() {
@@ -82,8 +84,17 @@ var _ = Describe("Home", func() {
 			}
 		})
 
+		It("returns an error when unable to list rotas", func() {
+			err := tx.Rollback(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = home.BuildProps(ctx, tx)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to list rotas"))
+		})
+
 		It("returns props when no rota exists", func() {
-			p, err := home.BuildProps(ctx)
+			p, err := home.BuildProps(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(p).To(BeAssignableToTypeOf(&HomeProps{}))
@@ -107,14 +118,14 @@ var _ = Describe("Home", func() {
 		})
 
 		It("returns home props when rotas exist", func() {
-			id, err := home.Queries.SaveRota(ctx, db.SaveRotaParams{
+			id, err := db.New(tx).SaveRota(ctx, db.SaveRotaParams{
 				ChannelID: home.State.ChannelID,
 				TeamID:    home.State.TeamID,
 				Name:      "Test Rota",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			p, err := home.BuildProps(ctx)
+			p, err := home.BuildProps(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(p).To(BeAssignableToTypeOf(&HomeProps{}))
@@ -164,7 +175,7 @@ var _ = Describe("Home", func() {
 		It("returns an error when actions is unknown", func() {
 			home.State.action = "unknown"
 
-			_, err := home.OnAction(ctx)
+			_, err := home.OnAction(ctx, tx)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError("unknown_action"))
 		})
@@ -173,7 +184,6 @@ var _ = Describe("Home", func() {
 			home.State.action = HASaveRota
 
 			addRota := &SaveRota{
-				Queries: queries,
 				State: &SaveRotaState{
 					TriggerID:      triggerID,
 					ChannelID:      channelID,
@@ -182,7 +192,7 @@ var _ = Describe("Home", func() {
 					schedulingType: db.RSCreated,
 				},
 			}
-			p, err := addRota.BuildProps(ctx)
+			p, err := addRota.BuildProps(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 			props := p.(*SaveRotaProps)
 
@@ -199,14 +209,26 @@ var _ = Describe("Home", func() {
 			}
 			sc.EXPECT().PushViewContext(ctx, triggerID, expectedModal).Return(nil, nil).Times(1)
 
-			_, err = home.OnAction(ctx)
+			_, err = home.OnAction(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns error when it's unable to build props", func() {
+			home.State.action = HASaveRota
+			home.State.rotaID = "123"
+
+			err := tx.Rollback(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = home.OnAction(ctx, tx)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to build add rota props"))
 		})
 	})
 
 	Describe("OnClose", func() {
 		It("returns without doing anything", func() {
-			res, err := home.OnClose(ctx)
+			res, err := home.OnClose(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedRes := &gen.ActionResponse{}
@@ -216,7 +238,7 @@ var _ = Describe("Home", func() {
 
 	Describe("OnSubmit", func() {
 		It("fails", func() {
-			_, err := home.OnSubmit(ctx)
+			_, err := home.OnSubmit(ctx, tx)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -231,7 +253,7 @@ var _ = Describe("Home", func() {
 		})
 
 		It("calls slack to open modal", func() {
-			p, err := home.BuildProps(ctx)
+			p, err := home.BuildProps(ctx, tx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(p).To(BeAssignableToTypeOf(&HomeProps{}))
 			props := p.(*HomeProps)
