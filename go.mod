@@ -15,7 +15,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	github.com/prometheus/client_golang v1.16.0
-	github.com/slack-go/slack v0.12.2
+	github.com/slack-go/slack v0.12.3
 	github.com/testcontainers/testcontainers-go v0.23.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.23.0
 	github.com/urfave/cli/v2 v2.25.7
