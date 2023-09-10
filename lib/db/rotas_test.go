@@ -3,16 +3,14 @@ package db
 import (
 	"context"
 	"errors"
-	"time"
-
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
+	"path/filepath"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/rotabot-io/rotabot/internal"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 var _ = Describe("Rotas", func() {
@@ -22,15 +20,12 @@ var _ = Describe("Rotas", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 
-		container, err := postgres.RunContainer(ctx,
-			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+		container, err := internal.RunContainer(ctx,
+			postgres.WithInitScripts(filepath.Join("..", "..", "assets", "structure.sql")),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
 		dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
-		Expect(err).ToNot(HaveOccurred())
-
-		err = Migrate(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
 
 		conn, err := pgx.Connect(ctx, dbUrl)

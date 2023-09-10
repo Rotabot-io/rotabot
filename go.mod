@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/KimMachineGun/automemlimit v0.3.0
 	github.com/ajg/form v1.5.1
+	github.com/docker/go-connections v0.4.0
 	github.com/getsentry/sentry-go v0.24.0
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/google/uuid v1.3.1
@@ -43,7 +44,6 @@ require (
 	github.com/dimfeld/httptreemux/v5 v5.5.0 // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/docker v24.0.6+incompatible // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect

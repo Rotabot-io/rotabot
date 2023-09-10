@@ -101,3 +101,8 @@ migrations/force:
 .PHONY: migrations/version
 migrations/version:
 	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest -path=./assets/migrations -database="postgres://${DB_DSN}" version
+
+migrations/test:
+	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest -path=./assets/migrations -database="postgres://rotabot@localhost:5432/rotabot?sslmode=disable" up
+	# We are using the `tail` command here to remove the header comment from pg_dump which includes the version and OS that ran the command which it will be different depending if is CI or local.
+	pg_dump --dbname=rotabot --username=rotabot --no-password --port=5432 --host=localhost | tail -n +7 > assets/structure.sql
