@@ -15,7 +15,7 @@ import (
 
 func Migrate(ctx context.Context, dsn string) error {
 	logger := zapctx.Logger(ctx)
-	iofsDriver, err := iofs.New(assets.EmbeddedFiles, "migrations")
+	iofsDriver, err := iofs.New(assets.Migrations, "migrations")
 	if err != nil {
 		logger.Error("pulling_db_migrations", zap.Error(err))
 		return err

@@ -14,7 +14,7 @@ sql:
             go_type:
               type: "RotaMetadata"
     database:
-      uri: "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+      uri: "postgresql://rotabot@localhost:5432/rotabot?sslmode=disable"
     rules:
       - sqlc/db-prepare
       - has-index

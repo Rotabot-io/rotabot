@@ -2,13 +2,11 @@ package views
 
 import (
 	"context"
-	"time"
+	"path/filepath"
+
+	"github.com/rotabot-io/rotabot/internal"
 
 	"github.com/rotabot-io/rotabot/slack/slackclient"
-
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/jackc/pgx/v5"
 	. "github.com/onsi/ginkgo/v2"
@@ -17,37 +15,31 @@ import (
 	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/rotabot-io/rotabot/slack/slackclient/mock_slackclient"
 	"github.com/slack-go/slack"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("SaveRota", func() {
 	var (
-		ctx        context.Context
-		sc         *mock_slackclient.MockSlackClient
-		addRota    *SaveRota
-		connString string
-		tx         pgx.Tx
-		conn       *pgx.Conn
-		container  *postgres.PostgresContainer
-
+		ctx       context.Context
+		sc        *mock_slackclient.MockSlackClient
+		addRota   *SaveRota
+		tx        pgx.Tx
+		conn      *pgx.Conn
 		channelID string
 		teamID    string
 		triggerID string
 	)
 
 	BeforeEach(func() {
-		var err error
 		ctx = context.Background()
 
-		container, err = postgres.RunContainer(ctx,
-			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+		container, err := internal.RunContainer(ctx,
+			postgres.WithInitScripts(filepath.Join("..", "..", "assets", "structure.sql")),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		connString, err = container.ConnectionString(ctx, "sslmode=disable")
-		Expect(err).ToNot(HaveOccurred())
-
-		err = db.Migrate(ctx, connString)
+		connString, err := container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
 		conn, err = pgx.Connect(ctx, connString)

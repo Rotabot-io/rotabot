@@ -2,17 +2,15 @@ package slack
 
 import (
 	"context"
-	"time"
+	"path/filepath"
 
+	"github.com/rotabot-io/rotabot/internal"
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
-
 	"github.com/slack-go/slack"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 
 	"github.com/rotabot-io/rotabot/lib/db"
 
@@ -27,30 +25,24 @@ import (
 
 var _ = Describe("Service", func() {
 	var (
-		ctx        context.Context
-		sc         *mock_slackclient.MockSlackClient
-		svc        gen.Service
-		connString string
-		conn       *pgxpool.Pool
-		container  *postgres.PostgresContainer
+		ctx  context.Context
+		sc   *mock_slackclient.MockSlackClient
+		svc  gen.Service
+		conn *pgxpool.Pool
 	)
 
 	channelId := "C041Q6Z5FSP"
 	teamId := "T042E16BURW"
 
 	BeforeEach(func() {
-		var err error
 		ctx = context.Background()
 
-		container, err = postgres.RunContainer(ctx,
-			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+		container, err := internal.RunContainer(ctx,
+			postgres.WithInitScripts(filepath.Join("..", "assets", "structure.sql")),
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		connString, err = container.ConnectionString(ctx, "sslmode=disable")
-		Expect(err).ToNot(HaveOccurred())
-
-		err = db.Migrate(ctx, connString)
+		connString, err := container.ConnectionString(ctx, "sslmode=disable")
 		Expect(err).ToNot(HaveOccurred())
 
 		conn, err = pgxpool.New(ctx, connString)

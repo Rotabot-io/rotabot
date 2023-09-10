@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  database:
+    image: 'postgres:14'
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: rotabot
+      POSTGRES_PASSWORD: ''
+      POSTGRES_DB: rotabot
+      POSTGRES_HOST_AUTH_METHOD: trust

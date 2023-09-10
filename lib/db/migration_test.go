@@ -2,31 +2,24 @@ package db
 
 import (
 	"context"
-	"time"
-
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/jackc/pgx/v5"
 	. "github.com/onsi/ginkgo/v2"
-
 	. "github.com/onsi/gomega"
+	"github.com/rotabot-io/rotabot/internal"
 )
 
 var _ = Describe("Migration", func() {
 	var ctx context.Context
 	var connString string
 	var conn *pgx.Conn
-	var container *postgres.PostgresContainer
+	var container *internal.PostgresContainer
 
 	BeforeEach(func() {
 		var err error
 		ctx = context.Background()
 
-		container, err = postgres.RunContainer(ctx,
-			testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(5*time.Second)),
-		)
+		container, err = internal.RunContainer(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
 		connString, err = container.ConnectionString(ctx, "sslmode=disable")

@@ -5,4 +5,4 @@ import (
 )
 
 //go:embed "migrations"
-var EmbeddedFiles embed.FS
+var Migrations embed.FS
