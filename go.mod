@@ -21,7 +21,7 @@ require (
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/automaxprocs v1.5.3
 	go.uber.org/mock v0.2.0
-	go.uber.org/zap v1.25.0
+	go.uber.org/zap v1.26.0
 	goa.design/goa/v3 v3.12.4
 )
 
@@ -30,7 +30,6 @@ require (
 	github.com/AnatolyRugalev/goregen v0.1.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
