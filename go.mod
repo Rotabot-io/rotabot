@@ -20,7 +20,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.23.0
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/automaxprocs v1.5.3
-	go.uber.org/mock v0.2.0
+	go.uber.org/mock v0.3.0
 	go.uber.org/zap v1.25.0
 	goa.design/goa/v3 v3.12.4
 )
