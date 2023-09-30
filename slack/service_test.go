@@ -4,6 +4,8 @@ import (
 	"context"
 	"path/filepath"
 
+	"github.com/testcontainers/testcontainers-go"
+
 	"github.com/rotabot-io/rotabot/internal"
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
@@ -39,6 +41,7 @@ var _ = Describe("Service", func() {
 
 		container, err := internal.RunContainer(ctx,
 			postgres.WithInitScripts(filepath.Join("..", "assets", "structure.sql")),
+			testcontainers.WithWaitStrategy(internal.DefaultWaitStrategy()),
 		)
 		Expect(err).ToNot(HaveOccurred())
 

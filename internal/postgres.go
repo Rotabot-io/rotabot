@@ -16,6 +16,7 @@ const (
 	defaultUser          = "rotabot"
 	defaultPassword      = "password"
 	defaultPostgresImage = "docker.io/postgres:14-alpine"
+	defaultQuery         = "SELECT ID FROM ROTAS LIMIT 1"
 )
 
 type PostgresContainer struct {
@@ -59,9 +60,6 @@ func RunContainer(ctx context.Context, opts ...testcontainers.ContainerCustomize
 		},
 		ExposedPorts: []string{"5432/tcp"},
 		Cmd:          []string{"postgres", "-c", "fsync=off"},
-		WaitingFor: wait.ForSQL("5432/tcp", "postgres", func(host string, port nat.Port) string {
-			return fmt.Sprintf("postgres://%s:%s@%s/%s?%s", "rotabot", "password", net.JoinHostPort(host, port.Port()), "rotabot", "sslmode=disable")
-		}).WithStartupTimeout(time.Second * 5),
 	}
 
 	genericContainerReq := testcontainers.GenericContainerRequest{
@@ -83,4 +81,21 @@ func RunContainer(ctx context.Context, opts ...testcontainers.ContainerCustomize
 	dbName := req.Env["POSTGRES_DB"]
 
 	return &PostgresContainer{Container: container, dbName: dbName, password: password, user: user}, nil
+}
+
+func WaitStrategyWithQuery(query string) wait.Strategy {
+	return wait.ForSQL("5432/tcp", "postgres", connectionString()).
+		WithStartupTimeout(time.Second * 5).
+		WithQuery(query).
+		WithPollInterval(time.Millisecond * 10)
+}
+
+func DefaultWaitStrategy() wait.Strategy {
+	return WaitStrategyWithQuery(defaultQuery)
+}
+
+func connectionString() func(host string, port nat.Port) string {
+	return func(host string, port nat.Port) string {
+		return fmt.Sprintf("postgres://%s:%s@%s/%s?%s", "rotabot", "password", net.JoinHostPort(host, port.Port()), "rotabot", "sslmode=disable")
+	}
 }

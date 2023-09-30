@@ -4,6 +4,8 @@ import (
 	"context"
 	"path/filepath"
 
+	"github.com/testcontainers/testcontainers-go"
+
 	"github.com/jackc/pgx/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,14 +17,14 @@ var _ = Describe("Repository", func() {
 	var ctx context.Context
 	var connString string
 	var conn *pgx.Conn
-	var container *internal.PostgresContainer
 
 	BeforeEach(func() {
 		var err error
 		ctx = context.Background()
 
-		container, err = internal.RunContainer(ctx,
+		container, err := internal.RunContainer(ctx,
 			postgres.WithInitScripts(filepath.Join("..", "..", "assets", "structure.sql")),
+			testcontainers.WithWaitStrategy(internal.DefaultWaitStrategy()),
 		)
 		Expect(err).ToNot(HaveOccurred())
 

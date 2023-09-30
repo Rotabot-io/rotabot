@@ -5,6 +5,8 @@ import (
 	"errors"
 	"path/filepath"
 
+	"github.com/testcontainers/testcontainers-go"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	. "github.com/onsi/ginkgo/v2"
@@ -22,6 +24,7 @@ var _ = Describe("Rotas", func() {
 
 		container, err := internal.RunContainer(ctx,
 			postgres.WithInitScripts(filepath.Join("..", "..", "assets", "structure.sql")),
+			testcontainers.WithWaitStrategy(internal.DefaultWaitStrategy()),
 		)
 		Expect(err).ToNot(HaveOccurred())
 

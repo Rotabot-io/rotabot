@@ -34,7 +34,8 @@ generate:
 
 .PHONY: test
 test:
-	go run github.com/onsi/ginkgo/v2/ginkgo -r -p \
+	# TODO This could run in parallel but it becomes very flaky -procs=N -p
+	go run github.com/onsi/ginkgo/v2/ginkgo -r \
 		-randomize-all \
 		-randomize-suites \
 		-race \
