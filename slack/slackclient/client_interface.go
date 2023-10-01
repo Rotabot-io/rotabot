@@ -34,6 +34,8 @@ type SlackClient interface {
 	ConnectRTMContext(context.Context) (*slack.Info, string, error)
 	CreateConversation(slack.CreateConversationParams) (*slack.Channel, error)
 	CreateConversationContext(context.Context, slack.CreateConversationParams) (*slack.Channel, error)
+	CreateManifest(*slack.Manifest, string) (*slack.ManifestResponse, error)
+	CreateManifestContext(context.Context, *slack.Manifest, string) (*slack.ManifestResponse, error)
 	CreateUserGroup(slack.UserGroup) (slack.UserGroup, error)
 	CreateUserGroupContext(context.Context, slack.UserGroup) (slack.UserGroup, error)
 	Debug() bool
@@ -43,6 +45,8 @@ type SlackClient interface {
 	DeleteFileComment(string, string) error
 	DeleteFileCommentContext(context.Context, string, string) error
 	DeleteFileContext(context.Context, string) error
+	DeleteManifest(string, string) (*slack.SlackResponse, error)
+	DeleteManifestContext(context.Context, string, string) (*slack.SlackResponse, error)
 	DeleteMessage(string, string) (string, string, error)
 	DeleteMessageContext(context.Context, string, string) (string, string, error)
 	DeleteReminder(string) error
@@ -63,6 +67,8 @@ type SlackClient interface {
 	EndDNDContext(context.Context) error
 	EndSnooze() (*slack.DNDStatus, error)
 	EndSnoozeContext(context.Context) (*slack.DNDStatus, error)
+	ExportManifest(string, string) (*slack.Manifest, error)
+	ExportManifestContext(context.Context, string, string) (*slack.Manifest, error)
 	GetAccessLogs(slack.AccessLogParameters) ([]slack.Login, *slack.Paging, error)
 	GetAccessLogsContext(context.Context, slack.AccessLogParameters) ([]slack.Login, *slack.Paging, error)
 	GetAuditLogs(slack.AuditLogParameters) ([]slack.AuditEntry, string, error)
@@ -138,6 +144,10 @@ type SlackClient interface {
 	InviteGuestContext(context.Context, string, string, string, string, string) error
 	InviteRestricted(string, string, string, string, string) error
 	InviteRestrictedContext(context.Context, string, string, string, string, string) error
+	InviteSharedEmailsToConversation(string, ...string) (string, bool, error)
+	InviteSharedEmailsToConversationContext(context.Context, string, ...string) (string, bool, error)
+	InviteSharedUserIDsToConversation(string, ...string) (string, bool, error)
+	InviteSharedUserIDsToConversationContext(context.Context, string, ...string) (string, bool, error)
 	InviteToTeam(string, string, string, string) error
 	InviteToTeamContext(context.Context, string, string, string, string) error
 	InviteUsersToConversation(string, ...string) (*slack.Channel, error)
@@ -201,6 +211,8 @@ type SlackClient interface {
 	RenameConversationContext(context.Context, string, string) (*slack.Channel, error)
 	RevokeFilePublicURL(string) (*slack.File, error)
 	RevokeFilePublicURLContext(context.Context, string) (*slack.File, error)
+	RotateTokens(string, string) (*slack.TokenResponse, error)
+	RotateTokensContext(context.Context, string, string) (*slack.TokenResponse, error)
 	SaveWorkflowStepConfiguration(string, *slack.WorkflowStepInputs, *[]slack.WorkflowStepOutput) error
 	SaveWorkflowStepConfigurationContext(context.Context, string, *slack.WorkflowStepInputs, *[]slack.WorkflowStepOutput) error
 	ScheduleMessage(string, string, ...slack.MsgOption) (string, string, error)
@@ -261,6 +273,9 @@ type SlackClient interface {
 	UninstallAppContext(context.Context, string, string) error
 	UnsetUserCustomStatus() error
 	UnsetUserCustomStatusContext(context.Context) error
+	UpdateConfigTokens(*slack.TokenResponse)
+	UpdateManifest(*slack.Manifest, string, string) (*slack.UpdateManifestResponse, error)
+	UpdateManifestContext(context.Context, *slack.Manifest, string, string) (*slack.UpdateManifestResponse, error)
 	UpdateMessage(string, string, ...slack.MsgOption) (string, string, string, error)
 	UpdateMessageContext(context.Context, string, string, ...slack.MsgOption) (string, string, string, error)
 	UpdateRemoteFile(string, slack.RemoteFileParameters) (*slack.RemoteFile, error)
@@ -275,6 +290,8 @@ type SlackClient interface {
 	UploadFileContext(context.Context, slack.FileUploadParameters) (*slack.File, error)
 	UploadFileV2(slack.UploadFileV2Parameters) (*slack.FileSummary, error)
 	UploadFileV2Context(context.Context, slack.UploadFileV2Parameters) (*slack.FileSummary, error)
+	ValidateManifest(*slack.Manifest, string, string) (*slack.ManifestResponse, error)
+	ValidateManifestContext(context.Context, *slack.Manifest, string, string) (*slack.ManifestResponse, error)
 	WorkflowStepCompleted(string, ...slack.WorkflowStepCompletedRequestOption) error
 	WorkflowStepFailed(string, string) error
 }

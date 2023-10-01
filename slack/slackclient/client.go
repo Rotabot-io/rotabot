@@ -1,5 +1,5 @@
 //go:generate sh -c "interfacer -for github.com/slack-go/slack.Client -as slackclient.SlackClient | grep -v _search > client_interface.go"
-//go:generate mockgen -package mock_slackclient -destination=mock_slackclient/client.go .  SlackClient
+//go:generate mockgen -package=mock_slackclient -destination=mock_slackclient/client.go -source=client_interface.go . SlackClient
 package slackclient
 
 import (
@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/rotabot-io/rotabot/slack/slackclient/mock_slackclient"
+
 	"github.com/slack-go/slack"
 	"go.uber.org/mock/gomock"
 
