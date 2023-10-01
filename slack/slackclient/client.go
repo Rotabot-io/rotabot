@@ -6,7 +6,6 @@ import (
 	"context"
 	"os"
 
-
 	"github.com/rotabot-io/rotabot/slack/slackclient/mock_slackclient"
 
 	"github.com/slack-go/slack"
