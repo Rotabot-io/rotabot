@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rotabot-io/rotabot/internal"
+	"github.com/testcontainers/testcontainers-go"
 )
 
 var _ = Describe("Migration", func() {
@@ -19,7 +20,9 @@ var _ = Describe("Migration", func() {
 		var err error
 		ctx = context.Background()
 
-		container, err = internal.RunContainer(ctx)
+		container, err = internal.RunContainer(ctx,
+			testcontainers.WithWaitStrategy(internal.WaitStrategyWithQuery("SELECT 1")),
+		)
 		Expect(err).ToNot(HaveOccurred())
 
 		connString, err = container.ConnectionString(ctx, "sslmode=disable")
