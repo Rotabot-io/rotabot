@@ -22,7 +22,7 @@ require (
 	go.uber.org/automaxprocs v1.5.3
 	go.uber.org/mock v0.3.0
 	go.uber.org/zap v1.26.0
-	goa.design/goa/v3 v3.13.1
+	goa.design/goa/v3 v3.13.2
 )
 
 require (
