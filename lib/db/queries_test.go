@@ -41,6 +41,62 @@ var _ = Describe("Rotas", func() {
 		})
 	})
 
+	Describe("CreateOrUpdateRota", func() {
+		It("Should create rota if id is null", func() {
+			id, err := q.CreateOrUpdateRota(ctx, CreateOrUpdateRotaParams{
+				ChannelID: "foo",
+				TeamID:    "bar",
+				Name:      "baz",
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(id).ToNot(BeEmpty())
+		})
+
+		It("Should fail to create two identical rotas", func() {
+			req := CreateOrUpdateRotaParams{
+				ChannelID: "foo",
+				TeamID:    "bar",
+				Name:      "baz",
+			}
+			_, err := q.CreateOrUpdateRota(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = q.CreateOrUpdateRota(ctx, req)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(ErrAlreadyExists))
+		})
+
+		It("Should update rota if id is null", func() {
+			id, err := q.CreateOrUpdateRota(ctx, CreateOrUpdateRotaParams{
+				ChannelID: "foo",
+				TeamID:    "bar",
+				Name:      "baz",
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(id).ToNot(BeEmpty())
+
+			updated, err := q.CreateOrUpdateRota(ctx, CreateOrUpdateRotaParams{
+				RotaID: id,
+				Name:   "bazbaz",
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(id).To(Equal(updated))
+
+			rota, err := q.FindRotaByID(ctx, id)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(rota.Name).To(Equal("bazbaz"))
+		})
+
+		It("Should fail to update something it does not exist", func() {
+			_, err := q.CreateOrUpdateRota(ctx, CreateOrUpdateRotaParams{
+				RotaID: "not_found",
+				Name:   "bazbaz",
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(ErrNotFound))
+		})
+	})
+
 	Describe("FindRotaByID", func() {
 		When("rota does not exist", func() {
 			It("should return ErrNotFound", func() {
@@ -50,7 +106,7 @@ var _ = Describe("Rotas", func() {
 		})
 		When("rota exists", func() {
 			It("should return rota", func() {
-				id, err := q.SaveRota(ctx, SaveRotaParams{
+				id, err := q.saveRota(ctx, saveRotaParams{
 					ChannelID: "C123",
 					TeamID:    "T123",
 					Name:      "test",
@@ -88,7 +144,7 @@ var _ = Describe("Rotas", func() {
 		})
 
 		It("should return rotas when one exist", func() {
-			_, err := q.SaveRota(ctx, SaveRotaParams{
+			_, err := q.saveRota(ctx, saveRotaParams{
 				ChannelID: channelID,
 				TeamID:    teamID,
 				Name:      "test",
@@ -105,7 +161,7 @@ var _ = Describe("Rotas", func() {
 		})
 
 		It("should return return nothing rota is on another team", func() {
-			_, err := q.SaveRota(ctx, SaveRotaParams{
+			_, err := q.saveRota(ctx, saveRotaParams{
 				ChannelID: channelID,
 				TeamID:    "another_team",
 				Name:      "test",
@@ -135,7 +191,7 @@ var _ = Describe("Rotas", func() {
 		})
 
 		It("should create rota", func() {
-			id, err := q.SaveRota(ctx, SaveRotaParams{
+			id, err := q.saveRota(ctx, saveRotaParams{
 				ChannelID: channelID,
 				TeamID:    teamID,
 				Name:      name,
@@ -149,7 +205,7 @@ var _ = Describe("Rotas", func() {
 		})
 
 		It("should fail when rota already exist", func() {
-			p := SaveRotaParams{
+			p := saveRotaParams{
 				ChannelID: channelID,
 				TeamID:    teamID,
 				Name:      name,
@@ -158,11 +214,11 @@ var _ = Describe("Rotas", func() {
 					SchedulingType: RSRandom,
 				},
 			}
-			id, err := q.SaveRota(ctx, p)
+			id, err := q.saveRota(ctx, p)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(id).ToNot(BeEmpty())
 
-			_, err = q.SaveRota(ctx, p)
+			_, err = q.saveRota(ctx, p)
 			Expect(err).To(HaveOccurred())
 
 			var pgError *pgconn.PgError
@@ -178,9 +234,9 @@ var _ = Describe("Rotas", func() {
 	Describe("UpdateRota", func() {
 		When("rota does not exist", func() {
 			It("should return ErrNotFound", func() {
-				id, err := q.UpdateRota(
+				id, err := q.updateRota(
 					ctx,
-					UpdateRotaParams{
+					updateRotaParams{
 						ID:   "not_found",
 						Name: "test",
 						Metadata: RotaMetadata{
@@ -195,7 +251,7 @@ var _ = Describe("Rotas", func() {
 		})
 		When("rota exists", func() {
 			It("should return rota", func() {
-				id, err := q.SaveRota(ctx, SaveRotaParams{
+				id, err := q.saveRota(ctx, saveRotaParams{
 					ChannelID: "C123",
 					TeamID:    "T123",
 					Name:      "test",
@@ -206,9 +262,9 @@ var _ = Describe("Rotas", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				id, err = q.UpdateRota(
+				id, err = q.updateRota(
 					ctx,
-					UpdateRotaParams{
+					updateRotaParams{
 						ID:   id,
 						Name: "test test",
 						Metadata: RotaMetadata{

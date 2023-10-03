@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/rotabot-io/rotabot/lib/db"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -49,13 +50,6 @@ func (s svc) Commands(ctx context.Context, c *gen.Command) error {
 	}
 	ctx = slackclient.WithClient(ctx, client)
 
-	view := views.Home{
-		State: &views.HomeState{
-			TriggerID: c.TriggerID,
-			ChannelID: c.ChannelID,
-			TeamID:    c.TeamID,
-		},
-	}
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		l.Error("failed to begin transaction", zap.Error(err))
@@ -68,7 +62,16 @@ func (s svc) Commands(ctx context.Context, c *gen.Command) error {
 		}
 	}(tx, ctx)
 
-	p, err := view.BuildProps(ctx, tx)
+	view := views.Home{
+		Repository: db.New(tx),
+		State: &views.HomeState{
+			TriggerID: c.TriggerID,
+			ChannelID: c.ChannelID,
+			TeamID:    c.TeamID,
+		},
+	}
+
+	p, err := view.BuildProps(ctx)
 	if err != nil {
 		l.Error("failed to build props", zap.Error(err))
 		return goaerrors.NewInternalError()
@@ -108,12 +111,6 @@ func (s svc) MessageActions(ctx context.Context, event *gen.Action) (*gen.Action
 	}
 	ctx = slackclient.WithClient(ctx, client)
 
-	view, err := views.Resolve(ctx, views.ResolverParams{Action: action})
-	if err != nil {
-		l.Error("failed to resolve view", zap.Error(err))
-		return nil, goaerrors.NewInternalError()
-	}
-
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		l.Error("failed to begin transaction", zap.Error(err))
@@ -125,15 +122,25 @@ func (s svc) MessageActions(ctx context.Context, event *gen.Action) (*gen.Action
 			l.Error("failed to rollback transaction", zap.Error(err))
 		}
 	}(tx, ctx)
+
+	view, err := views.Resolve(ctx, views.ResolverParams{
+		Repository: db.New(tx),
+		Action:     action,
+	})
+	if err != nil {
+		l.Error("failed to resolve view", zap.Error(err))
+		return nil, goaerrors.NewInternalError()
+	}
+
 	// We only use views for now so these are the only events that make sense for us to handle.
 	var res *gen.ActionResponse
 	switch action.Type { // nolint:exhaustive
 	case slack.InteractionTypeBlockActions:
-		res, err = view.OnAction(ctx, tx)
+		res, err = view.OnAction(ctx)
 	case slack.InteractionTypeViewSubmission:
-		res, err = view.OnSubmit(ctx, tx)
+		res, err = view.OnSubmit(ctx)
 	case slack.InteractionTypeViewClosed:
-		res, err = view.OnClose(ctx, tx)
+		res, err = view.OnClose(ctx)
 	default:
 		sentry.CaptureMessage(fmt.Sprintf("unknown_action_type: %s", action.Type))
 		l.Warn("unknown_action_type", zap.String("type", string(action.Type)))

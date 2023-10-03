@@ -19,7 +19,6 @@ import (
 	"go.uber.org/zap/zapio"
 
 	genSlack "github.com/rotabot-io/rotabot/gen/slack"
-	"github.com/rotabot-io/rotabot/lib/db"
 	"github.com/rotabot-io/rotabot/lib/middleware"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
 )
@@ -29,8 +28,6 @@ type ServerParams struct {
 
 	AppComponent     string
 	MetricsComponent string
-
-	Queries *db.Queries
 
 	SlackSigningSecret string
 	SlackService       genSlack.Service
