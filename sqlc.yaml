@@ -1,7 +1,7 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "assets/queries/"
+    queries: "assets/queries.sql"
     schema: "assets/migrations/"
     gen:
       go:
@@ -9,6 +9,7 @@ sql:
         package: "db"
         out: "lib/db"
         emit_json_tags: true
+        emit_empty_slices: true
         overrides:
           - column: "rotas.metadata"
             go_type:
