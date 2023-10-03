@@ -2,7 +2,9 @@
   <h3>Rotabot</h3>
   <p><b>Making handling rotas dead simple</b></p>
   <a href="https://github.com/rotabot-io/rotabot/blob/main/LICENSE"><img src="https://user-images.githubusercontent.com/4412200/201544613-a7197bc4-8b61-4fc5-bf09-68ee10133fd7.svg"/></a>
+  <img src="https://goreportcard.com/badge/github.com/rotabot-io/rotabot"/>
   <img src="https://github.com/rotabot-io/rotabot/actions/workflows/ci.yml/badge.svg"/>
+  <a href="https://codecov.io/gh/Rotabot-io/rotabot"> <img src="https://codecov.io/gh/Rotabot-io/rotabot/graph/badge.svg?token=OhsewQkRX4"/></a>
   <br/>
   <b><a target="_blank" href="https://rotabot.io" >Learn more »</a></b>
 </div>
