@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/jackc/pgx/v5"
 	"github.com/rotabot-io/rotabot/slack/slackclient"
 
 	gen "github.com/rotabot-io/rotabot/gen/slack"
@@ -20,7 +19,8 @@ import (
 )
 
 type SaveRota struct {
-	State *SaveRotaState
+	Repository db.Repository
+	State      *SaveRotaState
 }
 
 type SaveRotaState struct {
@@ -53,7 +53,7 @@ func (v SaveRota) DefaultState() interface{} {
 	}
 }
 
-func (v SaveRota) BuildProps(ctx context.Context, tx pgx.Tx) (interface{}, error) {
+func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 	var title *slack.TextBlockObject
 	var submit *slack.TextBlockObject
 	var rotaName string
@@ -62,7 +62,7 @@ func (v SaveRota) BuildProps(ctx context.Context, tx pgx.Tx) (interface{}, error
 
 	l := zapctx.Logger(ctx)
 	if v.State.rotaID != "" {
-		rota, err := db.New(tx).FindRotaByID(ctx, v.State.rotaID)
+		rota, err := v.Repository.FindRotaByID(ctx, v.State.rotaID)
 		if err != nil {
 			l.Error("failed_to_find", zap.Error(err))
 			return nil, err
@@ -115,19 +115,19 @@ func (v SaveRota) BuildProps(ctx context.Context, tx pgx.Tx) (interface{}, error
 	}, nil
 }
 
-func (v SaveRota) OnAction(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
+func (v SaveRota) OnAction(ctx context.Context) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Debug("action_view")
 	return &gen.ActionResponse{}, nil
 }
 
-func (v SaveRota) OnClose(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
+func (v SaveRota) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
 	zapctx.Logger(ctx).Debug("closing_view")
 	return &gen.ActionResponse{}, nil
 }
 
-func (v SaveRota) OnSubmit(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse, error) {
+func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	id, err := db.CreateOrUpdateRota(ctx, tx, db.CreateOrUpdateRotaParams{
+	id, err := v.Repository.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
 		RotaID:    v.State.rotaID,
 		TeamID:    v.State.TeamID,
 		ChannelID: v.State.ChannelID,
@@ -150,13 +150,14 @@ func (v SaveRota) OnSubmit(ctx context.Context, tx pgx.Tx) (*gen.ActionResponse,
 	l.Info("saved_rota", zap.String("id", id))
 
 	h := Home{
+		Repository: v.Repository,
 		State: &HomeState{
 			TriggerID: v.State.TriggerID,
 			ChannelID: v.State.ChannelID,
 			TeamID:    v.State.TeamID,
 		},
 	}
-	p, err := h.BuildProps(ctx, tx)
+	p, err := h.BuildProps(ctx)
 	if err != nil {
 		l.Error("failed_to_build_home_props", zap.Error(err))
 		return nil, err
