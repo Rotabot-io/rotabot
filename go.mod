@@ -13,7 +13,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/oklog/run v1.1.0
 	github.com/onsi/ginkgo/v2 v2.12.1
-	github.com/onsi/gomega v1.27.10
+	github.com/onsi/gomega v1.28.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/slack-go/slack v0.12.3
 	github.com/testcontainers/testcontainers-go v0.25.0
@@ -22,7 +22,7 @@ require (
 	go.uber.org/automaxprocs v1.5.3
 	go.uber.org/mock v0.3.0
 	go.uber.org/zap v1.26.0
-	goa.design/goa/v3 v3.13.1
+	goa.design/goa/v3 v3.13.2
 )
 
 require (
