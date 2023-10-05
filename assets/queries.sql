@@ -5,7 +5,7 @@ WHERE ID = $1;
 
 -- name: ListRotasByChannel :many
 SELECT ROTAS.*
-from ROTAS
+FROM ROTAS
 WHERE ROTAS.CHANNEL_ID = $1
   AND ROTAS.TEAM_ID = $2;
 
@@ -18,3 +18,15 @@ UPDATE ROTAS
 SET NAME     = $1,
     METADATA = $2
 WHERE ID = $3 RETURNING ID;
+
+-- name: saveMember :one
+INSERT INTO MEMBERS (ROTA_ID, USER_ID, METADATA)
+VALUES ($1, $2, $3) RETURNING ID;
+
+-- name: deleteMember :exec
+DELETE FROM MEMBERS WHERE USER_ID = $1;
+
+-- name: ListUserIDsByRotaID :many
+SELECT MEMBERS.USER_ID
+FROM MEMBERS
+WHERE MEMBERS.ROTA_ID = $1;

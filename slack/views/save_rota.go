@@ -33,6 +33,7 @@ type SaveRotaState struct {
 	schedulingType db.RotaSchedule
 	externalID     string
 	previousViewID string
+	userIds        []string
 }
 
 type SaveRotaProps struct {
@@ -72,6 +73,11 @@ func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 		schedulingType = rota.Metadata.SchedulingType
 		title = block.NewDefaultText("Update Rota")
 		submit = block.NewDefaultText("Update")
+		v.State.userIds, err = v.Repository.ListUserIDsByRotaID(ctx, v.State.rotaID)
+		if err != nil {
+			l.Error("failed_to_list_members", zap.Error(err))
+			return nil, err
+		}
 	} else {
 		title = block.NewDefaultText("Create Rota")
 		submit = block.NewDefaultText("Create")
@@ -106,6 +112,18 @@ func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 				{Text: string(db.RSRandom)},
 			},
 		}),
+		&slack.SectionBlock{
+			Type:    slack.MBTSection,
+			BlockID: "ROTA_MEMBERS",
+			Text:    block.NewDefaultText("Members:"),
+			Accessory: slack.NewAccessory(
+				&slack.MultiSelectBlockElement{
+					Type:         slack.MultiOptTypeUser,
+					InitialUsers: v.State.userIds,
+					ActionID:     "ROTA_MEMBERS",
+				},
+			),
+		},
 	}
 	return &SaveRotaProps{
 		title:  title,
@@ -127,12 +145,21 @@ func (v SaveRota) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
 
 func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
+	members := []db.Member{}
+	for _, userId := range v.State.userIds {
+		members = append(members, db.Member{
+			UserID:   userId,
+			RotaID:   v.State.rotaID,
+			Metadata: db.MemberMetadata{},
+		})
+	}
 	id, err := v.Repository.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
 		RotaID:    v.State.rotaID,
 		TeamID:    v.State.TeamID,
 		ChannelID: v.State.ChannelID,
 		Name:      v.State.rotaName,
 		Metadata:  db.RotaMetadata{Frequency: v.State.frequency, SchedulingType: v.State.schedulingType},
+		Members:   members,
 	})
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {

@@ -77,6 +77,22 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: members; Type: TABLE; Schema: public; Owner: rotabot
+--
+
+CREATE TABLE public.members (
+    id text DEFAULT ('RM'::text || public.generate_uid(14)) NOT NULL,
+    rota_id text NOT NULL,
+    user_id text NOT NULL,
+    metadata jsonb NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.members OWNER TO rotabot;
+
+--
 -- Name: rotas; Type: TABLE; Schema: public; Owner: rotabot
 --
 
@@ -106,6 +122,14 @@ CREATE TABLE public.schema_migrations (
 ALTER TABLE public.schema_migrations OWNER TO rotabot;
 
 --
+-- Data for Name: members; Type: TABLE DATA; Schema: public; Owner: rotabot
+--
+
+COPY public.members (id, rota_id, user_id, metadata, created_at, updated_at) FROM stdin;
+\.
+
+
+--
 -- Data for Name: rotas; Type: TABLE DATA; Schema: public; Owner: rotabot
 --
 
@@ -120,6 +144,14 @@ COPY public.rotas (id, team_id, channel_id, name, metadata, created_at, updated_
 COPY public.schema_migrations (version, dirty) FROM stdin;
 3	f
 \.
+
+
+--
+-- Name: members members_pkey; Type: CONSTRAINT; Schema: public; Owner: rotabot
+--
+
+ALTER TABLE ONLY public.members
+    ADD CONSTRAINT members_pkey PRIMARY KEY (id);
 
 
 --
@@ -146,10 +178,39 @@ CREATE UNIQUE INDEX idx_unique_rota_within_team_and_channel ON public.rotas USIN
 
 
 --
+-- Name: idx_unique_user_within_rota; Type: INDEX; Schema: public; Owner: rotabot
+--
+
+CREATE UNIQUE INDEX idx_unique_user_within_rota ON public.members USING btree (rota_id, user_id);
+
+
+--
+-- Name: idx_user_id_on_members; Type: INDEX; Schema: public; Owner: rotabot
+--
+
+CREATE INDEX idx_user_id_on_members ON public.members USING btree (user_id);
+
+
+--
+-- Name: members members_updated_at_trigger; Type: TRIGGER; Schema: public; Owner: rotabot
+--
+
+CREATE TRIGGER members_updated_at_trigger BEFORE UPDATE ON public.members FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
+
+
+--
 -- Name: rotas rotas_updated_at_trigger; Type: TRIGGER; Schema: public; Owner: rotabot
 --
 
 CREATE TRIGGER rotas_updated_at_trigger BEFORE UPDATE ON public.rotas FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
+
+
+--
+-- Name: members fk_rota_id_on_member; Type: FK CONSTRAINT; Schema: public; Owner: rotabot
+--
+
+ALTER TABLE ONLY public.members
+    ADD CONSTRAINT fk_rota_id_on_member FOREIGN KEY (rota_id) REFERENCES public.rotas(id) ON DELETE CASCADE;
 
 
 --

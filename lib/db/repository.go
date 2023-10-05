@@ -31,8 +31,11 @@ type RotaMetadata struct {
 	SchedulingType RotaSchedule  `json:"scheduling_type"`
 }
 
+type MemberMetadata struct{}
+
 type Repository interface {
 	CreateOrUpdateRota(ctx context.Context, p CreateOrUpdateRotaParams) (string, error)
 	FindRotaByID(ctx context.Context, id string) (Rota, error)
 	ListRotasByChannel(ctx context.Context, args ListRotasByChannelParams) ([]Rota, error)
+	ListUserIDsByRotaID(ctx context.Context, rotaID string) ([]string, error)
 }

@@ -87,6 +87,7 @@ func resolveSaveRota(ctx context.Context, p ResolverParams) (View, error) {
 		view.State.rotaName = values["ROTA_NAME"]["ROTA_NAME"].Value
 		view.State.frequency = db.RotaFrequency(values["ROTA_FREQUENCY"]["ROTA_FREQUENCY"].SelectedOption.Value)
 		view.State.schedulingType = db.RotaSchedule(values["ROTA_TYPE"]["ROTA_TYPE"].SelectedOption.Value)
+		view.State.userIds = values["ROTA_MEMBERS"]["ROTA_MEMBERS"].SelectedUsers
 	}
 
 	return view, nil

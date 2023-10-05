@@ -113,10 +113,11 @@ var _ = Describe("SaveRota", func() {
 				Expect(props.close.Text).To(Equal("Cancel"))
 				Expect(props.submit.Text).To(Equal("Create"))
 
-				Expect(props.blocks.BlockSet).To(HaveLen(3))
+				Expect(props.blocks.BlockSet).To(HaveLen(4))
 				Expect(props.blocks.BlockSet[0]).To(BeAssignableToTypeOf(&slack.InputBlock{}))
 				Expect(props.blocks.BlockSet[1]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 				Expect(props.blocks.BlockSet[2]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+				Expect(props.blocks.BlockSet[3]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 
 				inputBlock := props.blocks.BlockSet[0].(*slack.InputBlock)
 				Expect(inputBlock.BlockID).To(Equal("ROTA_NAME"))
@@ -159,10 +160,11 @@ var _ = Describe("SaveRota", func() {
 				Expect(props.close.Text).To(Equal("Cancel"))
 				Expect(props.submit.Text).To(Equal("Update"))
 
-				Expect(props.blocks.BlockSet).To(HaveLen(3))
+				Expect(props.blocks.BlockSet).To(HaveLen(4))
 				Expect(props.blocks.BlockSet[0]).To(BeAssignableToTypeOf(&slack.InputBlock{}))
 				Expect(props.blocks.BlockSet[1]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 				Expect(props.blocks.BlockSet[2]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+				Expect(props.blocks.BlockSet[3]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 
 				inputBlock := props.blocks.BlockSet[0].(*slack.InputBlock)
 				Expect(inputBlock.BlockID).To(Equal("ROTA_NAME"))

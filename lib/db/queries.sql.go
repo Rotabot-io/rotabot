@@ -32,7 +32,7 @@ func (q *Queries) FindRotaByID(ctx context.Context, id string) (Rota, error) {
 
 const listRotasByChannel = `-- name: ListRotasByChannel :many
 SELECT rotas.id, rotas.team_id, rotas.channel_id, rotas.name, rotas.metadata, rotas.created_at, rotas.updated_at
-from ROTAS
+FROM ROTAS
 WHERE ROTAS.CHANNEL_ID = $1
   AND ROTAS.TEAM_ID = $2
 `
@@ -68,6 +68,59 @@ func (q *Queries) ListRotasByChannel(ctx context.Context, arg ListRotasByChannel
 		return nil, err
 	}
 	return items, nil
+}
+
+const listUserIDsByRotaID = `-- name: ListUserIDsByRotaID :many
+SELECT MEMBERS.USER_ID
+FROM MEMBERS
+WHERE MEMBERS.ROTA_ID = $1
+`
+
+func (q *Queries) ListUserIDsByRotaID(ctx context.Context, rotaID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, listUserIDsByRotaID, rotaID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deleteMember = `-- name: deleteMember :exec
+DELETE FROM MEMBERS WHERE USER_ID = $1
+`
+
+func (q *Queries) deleteMember(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteMember, userID)
+	return err
+}
+
+const saveMember = `-- name: saveMember :one
+INSERT INTO MEMBERS (ROTA_ID, USER_ID, METADATA)
+VALUES ($1, $2, $3) RETURNING ID
+`
+
+type saveMemberParams struct {
+	RotaID   string         `json:"rota_id"`
+	UserID   string         `json:"user_id"`
+	Metadata MemberMetadata `json:"metadata"`
+}
+
+func (q *Queries) saveMember(ctx context.Context, arg saveMemberParams) (string, error) {
+	row := q.db.QueryRow(ctx, saveMember, arg.RotaID, arg.UserID, arg.Metadata)
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }
 
 const saveRota = `-- name: saveRota :one
