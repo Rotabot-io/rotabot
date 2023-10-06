@@ -90,6 +90,8 @@ func (q *Queries) updateMembersList(ctx context.Context, rotaId string, members 
 			)
 			return err
 		}
+		// Avoid trying to add the same user_id twice within the same request
+		e = append(e, m.UserID)
 	}
 	return nil
 }
