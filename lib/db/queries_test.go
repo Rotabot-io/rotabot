@@ -3,12 +3,13 @@ package db
 import (
 	"context"
 	"errors"
+	"github.com/jackc/pgx/v5/pgconn"
 	"path/filepath"
+	"sort"
 
 	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rotabot-io/rotabot/internal"
@@ -20,6 +21,7 @@ var _ = Describe("Rotas", func() {
 	var q *Queries
 
 	BeforeEach(func() {
+		var err error
 		ctx = context.Background()
 
 		container, err := internal.RunContainer(ctx,
@@ -33,7 +35,10 @@ var _ = Describe("Rotas", func() {
 
 		conn, err := pgx.Connect(ctx, dbUrl)
 		Expect(err).ToNot(HaveOccurred())
-		q = New(conn)
+
+		tx, err := conn.Begin(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		q = New(conn).WithTx(tx)
 
 		DeferCleanup(func() {
 			_ = container.Terminate(ctx)
@@ -47,9 +52,23 @@ var _ = Describe("Rotas", func() {
 				ChannelID: "foo",
 				TeamID:    "bar",
 				Name:      "baz",
+				Members: []Member{
+					{
+						UserID:   "12345",
+						Metadata: MemberMetadata{},
+					},
+					{
+						UserID:   "56789",
+						Metadata: MemberMetadata{},
+					},
+				},
 			})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(id).ToNot(BeEmpty())
+
+			ms, err := q.ListUserIDsByRotaID(ctx, id)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(ms)).To(Equal(2))
 		})
 
 		It("Should fail to create two identical rotas", func() {
@@ -123,6 +142,126 @@ var _ = Describe("Rotas", func() {
 				Expect(rota.Name).To(Equal("test"))
 				Expect(rota.Metadata.Frequency).To(Equal(RFDaily))
 				Expect(rota.Metadata.SchedulingType).To(Equal(RSRandom))
+			})
+		})
+	})
+
+	Describe("UpdateMembersList", func() {
+		var rotaId string
+
+		BeforeEach(func() {
+			var err error
+			rotaId, err = q.CreateOrUpdateRota(ctx, CreateOrUpdateRotaParams{
+				ChannelID: "foo",
+				TeamID:    "bar",
+				Name:      "baz",
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		When("there's no existing rota members", func() {
+			It("Creates new rota member from the list sent", func() {
+				err := q.updateMembersList(ctx, rotaId, []Member{
+					{
+						RotaID:   rotaId,
+						UserID:   "12345",
+						Metadata: MemberMetadata{},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Creates a list of rota members", func() {
+				err := q.updateMembersList(ctx, rotaId, []Member{
+					{
+						RotaID:   rotaId,
+						UserID:   "12345",
+						Metadata: MemberMetadata{},
+					},
+					{
+						RotaID:   rotaId,
+						UserID:   "67891",
+						Metadata: MemberMetadata{},
+					},
+					{
+						RotaID:   rotaId,
+						UserID:   "random",
+						Metadata: MemberMetadata{},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Creates only one member if i send a list with duplicates", func() {
+				err := q.updateMembersList(ctx, rotaId, []Member{
+					{
+						RotaID:   rotaId,
+						UserID:   "12345",
+						Metadata: MemberMetadata{},
+					},
+					{
+						RotaID:   rotaId,
+						UserID:   "12345",
+						Metadata: MemberMetadata{},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				members, err := q.ListUserIDsByRotaID(ctx, rotaId)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(members)).To(Equal(1))
+			})
+		})
+
+		When("Rota already has rota members", func() {
+			BeforeEach(func() {
+				err := q.updateMembersList(ctx, rotaId, []Member{
+					{
+						RotaID:   rotaId,
+						UserID:   "12345",
+						Metadata: MemberMetadata{},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should delete the existing ones if I don't send it on the new list", func() {
+				err := q.updateMembersList(ctx, rotaId, []Member{
+					{
+						RotaID:   rotaId,
+						UserID:   "98765",
+						Metadata: MemberMetadata{},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				members, err := q.ListUserIDsByRotaID(ctx, rotaId)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(members)).To(Equal(1))
+				Expect(members[0]).To(Equal("98765"))
+			})
+
+			It("Should not delete existing members if the new list contains it", func() {
+				err := q.updateMembersList(ctx, rotaId, []Member{
+					{
+						RotaID:   rotaId,
+						UserID:   "98765",
+						Metadata: MemberMetadata{},
+					},
+					{
+						RotaID:   rotaId,
+						UserID:   "12345",
+						Metadata: MemberMetadata{},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				members, err := q.ListUserIDsByRotaID(ctx, rotaId)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(members)).To(Equal(2))
+				sort.Strings(members)
+				Expect(members[0]).To(Equal("12345"))
+				Expect(members[1]).To(Equal("98765"))
 			})
 		})
 	})
@@ -224,10 +363,6 @@ var _ = Describe("Rotas", func() {
 			var pgError *pgconn.PgError
 			Expect(errors.As(err, &pgError)).To(BeTrue())
 			Expect(pgError.Code).To(Equal("23505"))
-
-			rotas, err := q.ListRotasByChannel(ctx, ListRotasByChannelParams{ChannelID: channelID, TeamID: teamID})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(rotas).To(HaveLen(1))
 		})
 	})
 

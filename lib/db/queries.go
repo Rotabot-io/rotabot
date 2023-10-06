@@ -59,28 +59,36 @@ func (q *Queries) updateMembersList(ctx context.Context, rotaId string, members 
 		return err
 	}
 	for _, userId := range e {
-		inx := slices.IndexFunc(members, func(member Member) bool { return member.UserID == userId })
-		if inx == -1 {
+		//Check existing member needs to be deleted
+		if inx := slices.IndexFunc(members, func(member Member) bool { return member.UserID == userId }); inx == -1 {
 			err = q.deleteMember(ctx, userId)
 			if err != nil {
-				l.Error("unable_to_fetch_existing_members", zap.Error(err))
+				l.Error("unable_to_delete_member",
+					zap.Error(err),
+					zap.String("user_id", userId),
+					zap.Strings("existing", e),
+				)
 				return err
 			}
 		}
 	}
 	for _, m := range members {
-		_, err = q.saveMember(ctx, saveMemberParams{
-			RotaID:   rotaId,
-			UserID:   m.UserID,
-			Metadata: m.Metadata,
-		})
+		// Check if desired member already exist before adding
+		if inx := slices.IndexFunc(e, func(userId string) bool { return m.UserID == userId }); inx == -1 {
+			_, err = q.saveMember(ctx, saveMemberParams{
+				RotaID:   rotaId,
+				UserID:   m.UserID,
+				Metadata: m.Metadata,
+			})
+		}
 		if err != nil {
 			err = mapError(err)
-			if errors.Is(err, ErrAlreadyExists) {
-				continue
-			} else {
-				return err
-			}
+			l.Error("unable_to_add_member",
+				zap.Error(err),
+				zap.String("user_id", m.UserID),
+				zap.Strings("existing", e),
+			)
+			return err
 		}
 	}
 	return nil
