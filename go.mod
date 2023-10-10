@@ -6,13 +6,13 @@ require (
 	github.com/KimMachineGun/automemlimit v0.3.0
 	github.com/ajg/form v1.5.1
 	github.com/docker/go-connections v0.4.0
-	github.com/getsentry/sentry-go v0.24.1
+	github.com/getsentry/sentry-go v0.25.0
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/google/uuid v1.3.1
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/lib/pq v1.10.9
 	github.com/oklog/run v1.1.0
-	github.com/onsi/ginkgo/v2 v2.12.1
+	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.28.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/slack-go/slack v0.12.3
