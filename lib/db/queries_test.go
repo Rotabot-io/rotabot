@@ -461,4 +461,55 @@ var _ = Describe("Rotas", func() {
 			Expect(len(list)).To(Equal(0))
 		})
 	})
+
+	Describe("ListUserIDsByRotaID", func() {
+		var rotaId string
+
+		BeforeEach(func() {
+			var err error
+			rotaId, err = q.CreateOrUpdateRota(ctx, CreateOrUpdateRotaParams{
+				ChannelID: "foo",
+				TeamID:    "bar",
+				Name:      "baz",
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("find members when they exist", func() {
+			err := q.updateMembersList(ctx, rotaId, []Member{
+				{
+					RotaID:   rotaId,
+					UserID:   "12345",
+					Metadata: MemberMetadata{},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			list, err := q.ListUserIDsByRotaID(ctx, rotaId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(list)).To(Equal(1))
+			Expect(list[0]).To(Equal("12345"))
+		})
+
+		It("should not find any member when it does not exist", func() {
+			list, err := q.ListUserIDsByRotaID(ctx, rotaId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(list)).To(Equal(0))
+		})
+
+		It("should not find members when they exist on another rota", func() {
+			err := q.updateMembersList(ctx, rotaId, []Member{
+				{
+					RotaID:   rotaId,
+					UserID:   "12345",
+					Metadata: MemberMetadata{},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			list, err := q.ListUserIDsByRotaID(ctx, "another_rota")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(list)).To(Equal(0))
+		})
+	})
 })
