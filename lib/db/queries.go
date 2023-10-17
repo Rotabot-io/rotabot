@@ -59,7 +59,7 @@ func (q *Queries) updateMembersList(ctx context.Context, rotaId string, members 
 		return err
 	}
 	for _, userId := range e {
-		//Check existing member needs to be deleted
+		// Check existing member needs to be deleted
 		if inx := slices.IndexFunc(members, func(member Member) bool { return member.UserID == userId }); inx == -1 {
 			err = q.deleteMember(ctx, userId)
 			if err != nil {

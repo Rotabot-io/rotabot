@@ -3,9 +3,10 @@ package db
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v5/pgconn"
 	"path/filepath"
 	"sort"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/testcontainers/testcontainers-go"
 
