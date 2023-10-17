@@ -420,4 +420,45 @@ var _ = Describe("Rotas", func() {
 			})
 		})
 	})
+
+	Describe("DeleteMember", func() {
+		var rotaId string
+
+		BeforeEach(func() {
+			var err error
+			rotaId, err = q.CreateOrUpdateRota(ctx, CreateOrUpdateRotaParams{
+				ChannelID: "foo",
+				TeamID:    "bar",
+				Name:      "baz",
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should delete member when it exist", func() {
+			err := q.updateMembersList(ctx, rotaId, []Member{
+				{
+					RotaID:   rotaId,
+					UserID:   "12345",
+					Metadata: MemberMetadata{},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = q.deleteMember(ctx, "12345")
+			Expect(err).ToNot(HaveOccurred())
+
+			list, err := q.ListUserIDsByRotaID(ctx, rotaId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(list)).To(Equal(0))
+		})
+
+		It("should not fail delete member when it does not exist", func() {
+			err := q.deleteMember(ctx, "12345")
+			Expect(err).ToNot(HaveOccurred())
+
+			list, err := q.ListUserIDsByRotaID(ctx, rotaId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(list)).To(Equal(0))
+		})
+	})
 })
