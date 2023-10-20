@@ -5,6 +5,8 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/rotabot-io/rotabot/internal"
+
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rotabot-io/rotabot/lib/zapctx"
 	"go.uber.org/zap"
@@ -16,7 +18,6 @@ type CreateOrUpdateRotaParams struct {
 	ChannelID string
 	Name      string
 	Metadata  RotaMetadata
-	Members   []Member
 }
 
 func (q *Queries) CreateOrUpdateRota(ctx context.Context, p CreateOrUpdateRotaParams) (string, error) {
@@ -42,17 +43,19 @@ func (q *Queries) CreateOrUpdateRota(ctx context.Context, p CreateOrUpdateRotaPa
 		l.Error("failed to save rota", zap.Error(err))
 		return "", err
 	}
-	err = q.updateMembersList(ctx, rotaId, p.Members)
-	if err != nil {
-		err = mapError(err)
-		l.Error("failed to save rota members", zap.Error(err))
-		return "", err
-	}
 	return rotaId, nil
 }
 
-func (q *Queries) updateMembersList(ctx context.Context, rotaId string, members []Member) error {
+func (q *Queries) UpdateRotaMembers(ctx context.Context, members []Member) error {
 	l := zapctx.Logger(ctx)
+	rotas := []string{}
+	for _, m := range members {
+		rotas = append(rotas, m.RotaID)
+	}
+	if len(internal.Unique(rotas)) > 1 {
+		return ErrMembersBelongToDifferentRotas
+	}
+	rotaId := rotas[0]
 	e, err := q.ListUserIDsByRotaID(ctx, rotaId)
 	if err != nil {
 		l.Error("unable_to_fetch_existing_members", zap.Error(err))

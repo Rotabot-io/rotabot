@@ -53,23 +53,13 @@ var _ = Describe("Rotas", func() {
 				ChannelID: "foo",
 				TeamID:    "bar",
 				Name:      "baz",
-				Members: []Member{
-					{
-						UserID:   "12345",
-						Metadata: MemberMetadata{},
-					},
-					{
-						UserID:   "56789",
-						Metadata: MemberMetadata{},
-					},
-				},
 			})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(id).ToNot(BeEmpty())
 
 			ms, err := q.ListUserIDsByRotaID(ctx, id)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(ms)).To(Equal(2))
+			Expect(ms).To(BeEmpty())
 		})
 
 		It("Should fail to create two identical rotas", func() {
@@ -147,7 +137,7 @@ var _ = Describe("Rotas", func() {
 		})
 	})
 
-	Describe("UpdateMembersList", func() {
+	Describe("UpdateRotaMembers", func() {
 		var rotaId string
 
 		BeforeEach(func() {
@@ -160,9 +150,26 @@ var _ = Describe("Rotas", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("fails if i try to update members from different rotas", func() {
+			err := q.UpdateRotaMembers(ctx, []Member{
+				{
+					RotaID:   "1234",
+					UserID:   "12345",
+					Metadata: MemberMetadata{},
+				},
+				{
+					RotaID:   "4321",
+					UserID:   "54321",
+					Metadata: MemberMetadata{},
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ErrMembersBelongToDifferentRotas))
+		})
+
 		When("there's no existing rota members", func() {
 			It("Creates new rota member from the list sent", func() {
-				err := q.updateMembersList(ctx, rotaId, []Member{
+				err := q.UpdateRotaMembers(ctx, []Member{
 					{
 						RotaID:   rotaId,
 						UserID:   "12345",
@@ -173,7 +180,7 @@ var _ = Describe("Rotas", func() {
 			})
 
 			It("Creates a list of rota members", func() {
-				err := q.updateMembersList(ctx, rotaId, []Member{
+				err := q.UpdateRotaMembers(ctx, []Member{
 					{
 						RotaID:   rotaId,
 						UserID:   "12345",
@@ -194,7 +201,7 @@ var _ = Describe("Rotas", func() {
 			})
 
 			It("Creates only one member if i send a list with duplicates", func() {
-				err := q.updateMembersList(ctx, rotaId, []Member{
+				err := q.UpdateRotaMembers(ctx, []Member{
 					{
 						RotaID:   rotaId,
 						UserID:   "12345",
@@ -216,7 +223,7 @@ var _ = Describe("Rotas", func() {
 
 		When("Rota already has rota members", func() {
 			BeforeEach(func() {
-				err := q.updateMembersList(ctx, rotaId, []Member{
+				err := q.UpdateRotaMembers(ctx, []Member{
 					{
 						RotaID:   rotaId,
 						UserID:   "12345",
@@ -227,7 +234,7 @@ var _ = Describe("Rotas", func() {
 			})
 
 			It("Should delete the existing ones if I don't send it on the new list", func() {
-				err := q.updateMembersList(ctx, rotaId, []Member{
+				err := q.UpdateRotaMembers(ctx, []Member{
 					{
 						RotaID:   rotaId,
 						UserID:   "98765",
@@ -243,7 +250,7 @@ var _ = Describe("Rotas", func() {
 			})
 
 			It("Should not delete existing members if the new list contains it", func() {
-				err := q.updateMembersList(ctx, rotaId, []Member{
+				err := q.UpdateRotaMembers(ctx, []Member{
 					{
 						RotaID:   rotaId,
 						UserID:   "98765",
@@ -435,7 +442,7 @@ var _ = Describe("Rotas", func() {
 		})
 
 		It("should delete member when it exist", func() {
-			err := q.updateMembersList(ctx, rotaId, []Member{
+			err := q.UpdateRotaMembers(ctx, []Member{
 				{
 					RotaID:   rotaId,
 					UserID:   "12345",
@@ -476,7 +483,7 @@ var _ = Describe("Rotas", func() {
 		})
 
 		It("find members when they exist", func() {
-			err := q.updateMembersList(ctx, rotaId, []Member{
+			err := q.UpdateRotaMembers(ctx, []Member{
 				{
 					RotaID:   rotaId,
 					UserID:   "12345",
@@ -498,7 +505,7 @@ var _ = Describe("Rotas", func() {
 		})
 
 		It("should not find members when they exist on another rota", func() {
-			err := q.updateMembersList(ctx, rotaId, []Member{
+			err := q.UpdateRotaMembers(ctx, []Member{
 				{
 					RotaID:   rotaId,
 					UserID:   "12345",

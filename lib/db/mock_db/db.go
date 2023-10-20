@@ -98,3 +98,17 @@ func (mr *MockRepositoryMockRecorder) ListUserIDsByRotaID(arg0, arg1 any) *gomoc
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserIDsByRotaID", reflect.TypeOf((*MockRepository)(nil).ListUserIDsByRotaID), arg0, arg1)
 }
+
+// UpdateRotaMembers mocks base method.
+func (m *MockRepository) UpdateRotaMembers(arg0 context.Context, arg1 []db.Member) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRotaMembers", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRotaMembers indicates an expected call of UpdateRotaMembers.
+func (mr *MockRepositoryMockRecorder) UpdateRotaMembers(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRotaMembers", reflect.TypeOf((*MockRepository)(nil).UpdateRotaMembers), arg0, arg1)
+}

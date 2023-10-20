@@ -138,21 +138,12 @@ func (v SaveRota) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
 
 func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	members := []db.Member{}
-	for _, userId := range v.State.userIds {
-		members = append(members, db.Member{
-			UserID:   userId,
-			RotaID:   v.State.rotaID,
-			Metadata: db.MemberMetadata{},
-		})
-	}
-	id, err := v.Repository.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
+	rotaId, err := v.Repository.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
 		RotaID:    v.State.rotaID,
 		TeamID:    v.State.TeamID,
 		ChannelID: v.State.ChannelID,
 		Name:      v.State.rotaName,
 		Metadata:  db.RotaMetadata{Frequency: v.State.frequency, SchedulingType: v.State.schedulingType},
-		Members:   members,
 	})
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
@@ -167,7 +158,19 @@ func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 		l.Error("failed_to_create_or_update_rota", zap.Error(err))
 		return nil, err
 	}
-	l.Info("saved_rota", zap.String("id", id))
+	l.Info("saved_rota", zap.String("rotaId", rotaId))
+	members := []db.Member{}
+	for _, userId := range v.State.userIds {
+		members = append(members, db.Member{
+			UserID:   userId,
+			RotaID:   rotaId,
+			Metadata: db.MemberMetadata{},
+		})
+	}
+	if err = v.Repository.UpdateRotaMembers(ctx, members); err != nil {
+		l.Error("failed_to_update_rota_members", zap.Error(err))
+		return nil, err
+	}
 
 	h := Home{
 		Repository: v.Repository,
@@ -198,7 +201,7 @@ func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 		return nil, err
 	}
 
-	bytes, err := json.Marshal(Metadata{RotaID: id, ChannelID: v.State.ChannelID})
+	bytes, err := json.Marshal(Metadata{RotaID: rotaId, ChannelID: v.State.ChannelID})
 	if err != nil {
 		l.Error("failed_to_marshal_metadata", zap.Error(err))
 		return nil, err

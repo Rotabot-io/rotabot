@@ -127,6 +127,9 @@ var _ = Describe("SaveRota", func() {
 
 				schedulingType := props.blocks.BlockSet[2].(*slack.SectionBlock)
 				Expect(schedulingType.BlockID).To(Equal("ROTA_TYPE"))
+
+				userSelect := props.blocks.BlockSet[3].(*slack.SectionBlock)
+				Expect(userSelect.BlockID).To(Equal("ROTA_MEMBERS"))
 			})
 		})
 
@@ -175,6 +178,9 @@ var _ = Describe("SaveRota", func() {
 
 				schedulingType := props.blocks.BlockSet[2].(*slack.SectionBlock)
 				Expect(schedulingType.BlockID).To(Equal("ROTA_TYPE"))
+
+				userSelect := props.blocks.BlockSet[3].(*slack.SectionBlock)
+				Expect(userSelect.BlockID).To(Equal("ROTA_MEMBERS"))
 			})
 		})
 	})
@@ -200,7 +206,7 @@ var _ = Describe("SaveRota", func() {
 	})
 
 	Describe("OnSubmit", func() {
-		When("the user creats a rota that already exists", func() {
+		When("the user creates a rota that already exists", func() {
 			It("returns an error", func() {
 				_, err := repo.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
 					Name:      "test",
