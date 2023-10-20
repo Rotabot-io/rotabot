@@ -167,6 +167,11 @@ var _ = Describe("Rotas", func() {
 			Expect(err).To(MatchError(ErrMembersBelongToDifferentRotas))
 		})
 
+		It("does not fail if i send no rotas", func() {
+			err := q.UpdateRotaMembers(ctx, []Member{})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 		When("there's no existing rota members", func() {
 			It("Creates new rota member from the list sent", func() {
 				err := q.UpdateRotaMembers(ctx, []Member{

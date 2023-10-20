@@ -48,6 +48,10 @@ func (q *Queries) CreateOrUpdateRota(ctx context.Context, p CreateOrUpdateRotaPa
 
 func (q *Queries) UpdateRotaMembers(ctx context.Context, members []Member) error {
 	l := zapctx.Logger(ctx)
+	if len(members) == 0 {
+		l.Warn("no_members_to_update")
+		return nil
+	}
 	rotas := []string{}
 	for _, m := range members {
 		rotas = append(rotas, m.RotaID)
