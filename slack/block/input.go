@@ -61,3 +61,24 @@ func staticSelectOption(option StaticSelectOption) *slack.OptionBlockObject {
 		Value: option.Text,
 	}
 }
+
+type UserSelect struct {
+	BlockID string
+	Label   string
+	UserIDs []string
+}
+
+func NewUserSelect(input UserSelect) *slack.SectionBlock {
+	return &slack.SectionBlock{
+		Type:    slack.MBTSection,
+		BlockID: input.BlockID,
+		Text:    NewDefaultText(input.Label),
+		Accessory: slack.NewAccessory(
+			&slack.MultiSelectBlockElement{
+				Type:         slack.MultiOptTypeUser,
+				InitialUsers: input.UserIDs,
+				ActionID:     input.BlockID,
+			},
+		),
+	}
+}

@@ -112,18 +112,11 @@ func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 				{Text: string(db.RSRandom)},
 			},
 		}),
-		&slack.SectionBlock{
-			Type:    slack.MBTSection,
+		block.NewUserSelect(block.UserSelect{
 			BlockID: "ROTA_MEMBERS",
-			Text:    block.NewDefaultText("Members:"),
-			Accessory: slack.NewAccessory(
-				&slack.MultiSelectBlockElement{
-					Type:         slack.MultiOptTypeUser,
-					InitialUsers: v.State.userIds,
-					ActionID:     "ROTA_MEMBERS",
-				},
-			),
-		},
+			Label:   "Members:",
+			UserIDs: v.State.userIds,
+		}),
 	}
 	return &SaveRotaProps{
 		title:  title,
