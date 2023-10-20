@@ -2,7 +2,10 @@ package views
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
+
+	"go.uber.org/mock/gomock"
 
 	"github.com/testcontainers/testcontainers-go"
 
@@ -177,31 +180,43 @@ var _ = Describe("Home", func() {
 		It("calls slack api to push add_rota modal", func() {
 			home.State.action = HASaveRota
 
-			addRota := &SaveRota{
-				State: &SaveRotaState{
-					TriggerID:      triggerID,
-					ChannelID:      channelID,
-					TeamID:         teamID,
-					frequency:      db.RFWeekly,
-					schedulingType: db.RSCreated,
-				},
-			}
-			p, err := addRota.BuildProps(ctx)
-			Expect(err).ToNot(HaveOccurred())
-			props := p.(*SaveRotaProps)
+			sc.EXPECT().PushViewContext(ctx, triggerID, gomock.Cond(func(x any) bool {
+				view := x.(slack.ModalViewRequest)
 
-			expectedModal := slack.ModalViewRequest{
-				Type:            slack.VTModal,
-				Title:           props.title,
-				Blocks:          props.blocks,
-				Close:           props.close,
-				Submit:          props.submit,
-				CallbackID:      string(VTSaveRota),
-				NotifyOnClose:   true,
-				ClearOnClose:    true,
-				PrivateMetadata: "{\"rota_id\":\"\",\"channel_id\":\"CH123\"}",
-			}
-			sc.EXPECT().PushViewContext(ctx, triggerID, expectedModal).Return(nil, nil).Times(1)
+				var m Metadata
+				err := json.Unmarshal([]byte(view.PrivateMetadata), &m)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(view.CallbackID).To(Equal(string(VTSaveRota)))
+				Expect(m.ChannelID).To(Equal(channelID))
+				return Expect(m.RotaID).To(BeEmpty())
+			})).Return(nil, nil).Times(1)
+
+			_, err := home.OnAction(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("calls slack api to push update modal", func() {
+			home.State.action = HASaveRota
+			id, err := home.Repository.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
+				Name:      "Rota",
+				ChannelID: channelID,
+				TeamID:    teamID,
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			home.State.rotaID = id
+			sc.EXPECT().PushViewContext(ctx, triggerID, gomock.Cond(func(x any) bool {
+				view := x.(slack.ModalViewRequest)
+
+				var m Metadata
+				err := json.Unmarshal([]byte(view.PrivateMetadata), &m)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(view.CallbackID).To(Equal(string(VTSaveRota)))
+				Expect(m.ChannelID).To(Equal(channelID))
+				return Expect(m.RotaID).To(Equal(id))
+			})).Return(nil, nil).Times(1)
 
 			_, err = home.OnAction(ctx)
 			Expect(err).ToNot(HaveOccurred())
@@ -238,20 +253,18 @@ var _ = Describe("Home", func() {
 			p, err := home.BuildProps(ctx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(p).To(BeAssignableToTypeOf(&HomeProps{}))
-			props := p.(*HomeProps)
 
-			expectedView := slack.ModalViewRequest{
-				Type:            slack.VTModal,
-				Title:           props.title,
-				Blocks:          props.blocks,
-				CallbackID:      string(VTHome),
-				NotifyOnClose:   true,
-				ClearOnClose:    true,
-				PrivateMetadata: "{\"rota_id\":\"\",\"channel_id\":\"C123\"}",
-			}
-			sc.EXPECT().
-				OpenViewContext(ctx, home.State.TriggerID, expectedView).
-				Return(nil, nil).Times(1)
+			sc.EXPECT().OpenViewContext(ctx, home.State.TriggerID, gomock.Cond(func(x any) bool {
+				view := x.(slack.ModalViewRequest)
+
+				var m Metadata
+				err := json.Unmarshal([]byte(view.PrivateMetadata), &m)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(view.CallbackID).To(Equal(string(VTHome)))
+				Expect(m.ChannelID).To(Equal("C123"))
+				return Expect(m.RotaID).To(BeEmpty())
+			})).Return(nil, nil).Times(1)
 
 			err = home.Render(ctx, p)
 			Expect(err).ToNot(HaveOccurred())

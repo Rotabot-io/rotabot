@@ -56,7 +56,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        go: ['1.20', '1.21']
+         go: ['1.21']
+         # Disabling 1.20 because I'm using slices and maybe slog and don't really want to wait.
+#        go: ['1.20', '1.21']
     steps:
       - name: Check out code
         uses: actions/checkout@v4

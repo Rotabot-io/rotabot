@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	ErrAlreadyExists = errors.New("resource already exist")
-	ErrNotFound      = errors.New("no rows in result set")
+	ErrAlreadyExists                 = errors.New("resource already exist")
+	ErrNotFound                      = errors.New("no rows in result set")
+	ErrMembersBelongToDifferentRotas = errors.New("members must belong to the same rota")
 )
 
 // RotaSchedule is the type that defines how the members of a rota are scheduled
@@ -31,8 +32,12 @@ type RotaMetadata struct {
 	SchedulingType RotaSchedule  `json:"scheduling_type"`
 }
 
+type MemberMetadata struct{}
+
 type Repository interface {
 	CreateOrUpdateRota(ctx context.Context, p CreateOrUpdateRotaParams) (string, error)
+	UpdateRotaMembers(ctx context.Context, members []Member) error
 	FindRotaByID(ctx context.Context, id string) (Rota, error)
 	ListRotasByChannel(ctx context.Context, args ListRotasByChannelParams) ([]Rota, error)
+	ListUserIDsByRotaID(ctx context.Context, rotaID string) ([]string, error)
 }

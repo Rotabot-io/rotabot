@@ -33,6 +33,7 @@ type SaveRotaState struct {
 	schedulingType db.RotaSchedule
 	externalID     string
 	previousViewID string
+	userIds        []string
 }
 
 type SaveRotaProps struct {
@@ -72,6 +73,11 @@ func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 		schedulingType = rota.Metadata.SchedulingType
 		title = block.NewDefaultText("Update Rota")
 		submit = block.NewDefaultText("Update")
+		v.State.userIds, err = v.Repository.ListUserIDsByRotaID(ctx, v.State.rotaID)
+		if err != nil {
+			l.Error("failed_to_list_members", zap.Error(err))
+			return nil, err
+		}
 	} else {
 		title = block.NewDefaultText("Create Rota")
 		submit = block.NewDefaultText("Create")
@@ -106,6 +112,11 @@ func (v SaveRota) BuildProps(ctx context.Context) (interface{}, error) {
 				{Text: string(db.RSRandom)},
 			},
 		}),
+		block.NewUserSelect(block.UserSelect{
+			BlockID: "ROTA_MEMBERS",
+			Label:   "Members:",
+			UserIDs: v.State.userIds,
+		}),
 	}
 	return &SaveRotaProps{
 		title:  title,
@@ -127,7 +138,7 @@ func (v SaveRota) OnClose(ctx context.Context) (*gen.ActionResponse, error) {
 
 func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	id, err := v.Repository.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
+	rotaId, err := v.Repository.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
 		RotaID:    v.State.rotaID,
 		TeamID:    v.State.TeamID,
 		ChannelID: v.State.ChannelID,
@@ -147,7 +158,19 @@ func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 		l.Error("failed_to_create_or_update_rota", zap.Error(err))
 		return nil, err
 	}
-	l.Info("saved_rota", zap.String("id", id))
+	l.Info("saved_rota", zap.String("rotaId", rotaId))
+	members := []db.Member{}
+	for _, userId := range v.State.userIds {
+		members = append(members, db.Member{
+			UserID:   userId,
+			RotaID:   rotaId,
+			Metadata: db.MemberMetadata{},
+		})
+	}
+	if err = v.Repository.UpdateRotaMembers(ctx, members); err != nil {
+		l.Error("failed_to_update_rota_members", zap.Error(err))
+		return nil, err
+	}
 
 	h := Home{
 		Repository: v.Repository,
@@ -178,7 +201,7 @@ func (v SaveRota) OnSubmit(ctx context.Context) (*gen.ActionResponse, error) {
 		return nil, err
 	}
 
-	bytes, err := json.Marshal(Metadata{RotaID: id, ChannelID: v.State.ChannelID})
+	bytes, err := json.Marshal(Metadata{RotaID: rotaId, ChannelID: v.State.ChannelID})
 	if err != nil {
 		l.Error("failed_to_marshal_metadata", zap.Error(err))
 		return nil, err

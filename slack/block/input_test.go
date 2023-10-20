@@ -85,4 +85,48 @@ var _ = Describe("Input", func() {
 			Expect(s.Accessory.SelectElement.Options[0].Value).To(Equal("option1"))
 		})
 	})
+
+	Describe("NewUserSelect", func() {
+		It("generates static select without any user", func() {
+			s := NewUserSelect(UserSelect{
+				BlockID: "blockId",
+				Label:   "label",
+				UserIDs: []string{},
+			})
+
+			Expect(s.Type).To(Equal(slack.MBTSection))
+			Expect(s.BlockID).To(Equal("blockId"))
+			Expect(s.Text.Type).To(Equal(slack.PlainTextType))
+			Expect(s.Text.Text).To(Equal("label"))
+
+			Expect(s.Accessory).ToNot(BeNil())
+			Expect(s.Accessory.MultiSelectElement.Type).To(Equal(slack.MultiOptTypeUser))
+			Expect(s.Accessory.MultiSelectElement.ActionID).To(Equal("blockId"))
+			Expect(s.Accessory.MultiSelectElement.InitialUsers).To(BeEmpty())
+		})
+
+		It("generates static select without options", func() {
+			s := NewUserSelect(UserSelect{
+				BlockID: "blockId",
+				Label:   "label",
+				UserIDs: []string{
+					"option1",
+					"option2",
+				},
+			})
+
+			Expect(s.Type).To(Equal(slack.MBTSection))
+			Expect(s.BlockID).To(Equal("blockId"))
+			Expect(s.Text.Type).To(Equal(slack.PlainTextType))
+			Expect(s.Text.Text).To(Equal("label"))
+
+			Expect(s.Accessory).ToNot(BeNil())
+			Expect(s.Accessory.MultiSelectElement.Type).To(Equal(slack.MultiOptTypeUser))
+			Expect(s.Accessory.MultiSelectElement.ActionID).To(Equal("blockId"))
+			Expect(len(s.Accessory.MultiSelectElement.InitialUsers)).To(Equal(2))
+
+			Expect(s.Accessory.MultiSelectElement.InitialUsers[0]).To(Equal("option1"))
+			Expect(s.Accessory.MultiSelectElement.InitialUsers[1]).To(Equal("option2"))
+		})
+	})
 })

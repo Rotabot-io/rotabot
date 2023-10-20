@@ -154,7 +154,9 @@ func (v Home) Render(ctx context.Context, p interface{}) error {
 
 func (v Home) handleAddRotaAction(ctx context.Context) (*gen.ActionResponse, error) {
 	l := zapctx.Logger(ctx)
-	view := SaveRota{}
+	view := SaveRota{
+		Repository: v.Repository,
+	}
 	view.State = view.DefaultState().(*SaveRotaState)
 	view.State.ChannelID = v.State.ChannelID
 	view.State.TeamID = v.State.TeamID

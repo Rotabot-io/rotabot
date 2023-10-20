@@ -113,10 +113,11 @@ var _ = Describe("SaveRota", func() {
 				Expect(props.close.Text).To(Equal("Cancel"))
 				Expect(props.submit.Text).To(Equal("Create"))
 
-				Expect(props.blocks.BlockSet).To(HaveLen(3))
+				Expect(props.blocks.BlockSet).To(HaveLen(4))
 				Expect(props.blocks.BlockSet[0]).To(BeAssignableToTypeOf(&slack.InputBlock{}))
 				Expect(props.blocks.BlockSet[1]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 				Expect(props.blocks.BlockSet[2]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+				Expect(props.blocks.BlockSet[3]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 
 				inputBlock := props.blocks.BlockSet[0].(*slack.InputBlock)
 				Expect(inputBlock.BlockID).To(Equal("ROTA_NAME"))
@@ -126,6 +127,9 @@ var _ = Describe("SaveRota", func() {
 
 				schedulingType := props.blocks.BlockSet[2].(*slack.SectionBlock)
 				Expect(schedulingType.BlockID).To(Equal("ROTA_TYPE"))
+
+				userSelect := props.blocks.BlockSet[3].(*slack.SectionBlock)
+				Expect(userSelect.BlockID).To(Equal("ROTA_MEMBERS"))
 			})
 		})
 
@@ -159,10 +163,11 @@ var _ = Describe("SaveRota", func() {
 				Expect(props.close.Text).To(Equal("Cancel"))
 				Expect(props.submit.Text).To(Equal("Update"))
 
-				Expect(props.blocks.BlockSet).To(HaveLen(3))
+				Expect(props.blocks.BlockSet).To(HaveLen(4))
 				Expect(props.blocks.BlockSet[0]).To(BeAssignableToTypeOf(&slack.InputBlock{}))
 				Expect(props.blocks.BlockSet[1]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 				Expect(props.blocks.BlockSet[2]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
+				Expect(props.blocks.BlockSet[3]).To(BeAssignableToTypeOf(&slack.SectionBlock{}))
 
 				inputBlock := props.blocks.BlockSet[0].(*slack.InputBlock)
 				Expect(inputBlock.BlockID).To(Equal("ROTA_NAME"))
@@ -173,6 +178,9 @@ var _ = Describe("SaveRota", func() {
 
 				schedulingType := props.blocks.BlockSet[2].(*slack.SectionBlock)
 				Expect(schedulingType.BlockID).To(Equal("ROTA_TYPE"))
+
+				userSelect := props.blocks.BlockSet[3].(*slack.SectionBlock)
+				Expect(userSelect.BlockID).To(Equal("ROTA_MEMBERS"))
 			})
 		})
 	})
@@ -198,7 +206,7 @@ var _ = Describe("SaveRota", func() {
 	})
 
 	Describe("OnSubmit", func() {
-		When("the user creats a rota that already exists", func() {
+		When("the user creates a rota that already exists", func() {
 			It("returns an error", func() {
 				_, err := repo.CreateOrUpdateRota(ctx, db.CreateOrUpdateRotaParams{
 					Name:      "test",
