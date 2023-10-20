@@ -99,6 +99,8 @@ func (q *Queries) updateMembersList(ctx context.Context, rotaId string, members 
 func mapError(err error) error {
 	var pgError *pgconn.PgError
 	if errors.As(err, &pgError) {
+		// The magic list of errors can be found here
+		// https://www.postgresql.org/docs/current/errcodes-appendix.html
 		switch pgError.Code {
 		case "23505":
 			return ErrAlreadyExists
