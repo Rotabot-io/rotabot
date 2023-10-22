@@ -1,6 +1,6 @@
 CREATE TABLE ROTAS
 (
-    ID         TEXT PRIMARY KEY   DEFAULT ('RT' || generate_uid(14)),
+    ID         TEXT PRIMARY KEY   DEFAULT ('RT' || generate_ulid()),
     TEAM_ID    TEXT      NOT NULL,
     CHANNEL_ID TEXT      NOT NULL,
     NAME       TEXT      NOT NULL,
@@ -15,11 +15,11 @@ CREATE TRIGGER rotas_updated_at_trigger
     BEFORE UPDATE
     ON ROTAS
     FOR EACH ROW
-    EXECUTE PROCEDURE trigger_set_timestamp();
+EXECUTE PROCEDURE trigger_set_timestamp();
 
 CREATE TABLE MEMBERS
 (
-    ID         TEXT PRIMARY KEY   DEFAULT ('RM' || generate_uid(14)),
+    ID         TEXT PRIMARY KEY   DEFAULT ('RM' || generate_ulid()),
     ROTA_ID    TEXT      NOT NULL,
     USER_ID    TEXT      NOT NULL,
     METADATA   JSONB     NOT NULL,
@@ -39,4 +39,28 @@ CREATE TRIGGER members_updated_at_trigger
     BEFORE UPDATE
     ON MEMBERS
     FOR EACH ROW
-    EXECUTE PROCEDURE trigger_set_timestamp();
+EXECUTE PROCEDURE trigger_set_timestamp();
+
+CREATE TABLE SHIFTS
+(
+    ID         TEXT PRIMARY KEY   DEFAULT ('RS' || generate_ulid()),
+    ROTA_ID    TEXT      NOT NULL,
+    METADATA   JSONB     NOT NULL,
+    ACTIVE     BOOLEAN   NOT NULL DEFAULT FALSE,
+    CREATED_AT TIMESTAMP NOT NULL DEFAULT NOW(),
+    UPDATED_AT TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_rota_id_on_shift
+        FOREIGN KEY (ROTA_ID)
+            REFERENCES ROTAS (ID)
+            ON DELETE CASCADE
+);
+
+CREATE INDEX idx_rota_id_on_shifts ON SHIFTS (ROTA_ID);
+CREATE UNIQUE INDEX idx_only_one_active_shift ON SHIFTS (ROTA_ID, ACTIVE) WHERE ACTIVE = TRUE;
+
+CREATE TRIGGER shifts_updated_at_trigger
+    BEFORE UPDATE
+    ON SHIFTS
+    FOR EACH ROW
+EXECUTE PROCEDURE trigger_set_timestamp();
