@@ -3,10 +3,11 @@ permissions: {} # no need any permissions
 on:
   push:
     branches: [main]
+  merge_group:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 10 * * 1' # run "At 10:00 on Monday"
+    - cron: "0 10 * * 1" # run "At 10:00 on Monday"
   workflow_call:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,7 +21,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: 'stable'
+          go-version: "stable"
           check-latest: true
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,7 +37,7 @@ jobs:
         run: go mod verify
       - uses: sqlc-dev/setup-sqlc@v4
         with:
-          sqlc-version: '1.22.0'
+          sqlc-version: "1.22.0"
       - name: Install deps
         run: |
           go install goa.design/goa/v3/cmd/goa@v3
@@ -56,9 +57,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-         go: ['1.21']
-         # Disabling 1.20 because I'm using slices and maybe slog and don't really want to wait.
-#        go: ['1.20', '1.21']
+        go: ["1.21"]
+        # Disabling 1.20 because I'm using slices and maybe slog and don't really want to wait.
+        # go: ['1.20', '1.21']
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -93,7 +94,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: 'stable'
+          go-version: "stable"
           check-latest: true
       - name: Checkout code
         uses: actions/checkout@v4
@@ -110,7 +111,7 @@ jobs:
         image: "postgres:14"
         env:
           POSTGRES_USER: rotabot
-          POSTGRES_PASSWORD: ''
+          POSTGRES_PASSWORD: ""
           POSTGRES_DB: rotabot
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
@@ -124,7 +125,7 @@ jobs:
       - name: setup-sqlc
         uses: sqlc-dev/setup-sqlc@v4
         with:
-          sqlc-version: '1.22.0'
+          sqlc-version: "1.22.0"
       - name: Run db migrations
         run: |
           make migrations/up DB_DSN=rotabot:postgres@localhost:5432/rotabot?sslmode=disable
@@ -138,7 +139,7 @@ jobs:
         image: "postgres:14"
         env:
           POSTGRES_USER: rotabot
-          POSTGRES_PASSWORD: ''
+          POSTGRES_PASSWORD: ""
           POSTGRES_DB: rotabot
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
@@ -159,7 +160,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: 'stable'
+          go-version: "stable"
           check-latest: true
       - name: Checkout
         uses: actions/checkout@v4
