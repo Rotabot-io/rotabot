@@ -8,7 +8,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/getsentry/sentry-go v0.25.0
 	github.com/golang-migrate/migrate/v4 v4.16.2
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/lib/pq v1.10.9
 	github.com/oklog/run v1.1.0
@@ -22,7 +22,7 @@ require (
 	go.uber.org/automaxprocs v1.5.3
 	go.uber.org/mock v0.3.0
 	go.uber.org/zap v1.26.0
-	goa.design/goa/v3 v3.13.2
+	goa.design/goa/v3 v3.14.0
 )
 
 require (
@@ -91,14 +91,14 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.13.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 // indirect
-	google.golang.org/grpc v1.58.2 // indirect
+	golang.org/x/tools v0.14.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
+	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
